@@ -31,22 +31,24 @@ var peerMap map[uint64]net.Addr
 type packetType byte
 
 const (
-	hELLO            packetType = 0
-	hELLO_RCV                   = 1
-	hELLO_DEC                   = 2
-	lIST_PORTS                  = 3
-	pORTS                       = 4
-	pORTS_DEC                   = 5
-	cLOSE                       = 6
-	cLOSE_GRACEFULLY            = 7
+	hELLO packetType = iota + 0
+	hELLO_RCV
+	hELLO_DEC
+
+	lIST_PORTS
+	pORTS
+	pORTS_DEC
+
+	cLOSE
+	cLOSE_GRACEFULLY
 )
 
 //States for state machine
 const (
-	STATE_0 = 0 //Initial State
-	STATE_1 = 1
-	STATE_2 = 2
-	STATE_3 = 3 //Dead State
+	STATE_0 = iota + 0 //Initial State
+	STATE_1
+	STATE_2
+	STATE_3 //Dead State
 )
 
 type discoveryPacket struct {
