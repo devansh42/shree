@@ -1,9 +1,11 @@
-package shree
+package main
 
 import (
 	"errors"
 	"fmt"
 	"log"
+
+	"github.com/devansh42/shree/remote"
 
 	"golang.org/x/crypto/ssh/terminal"
 
@@ -13,18 +15,31 @@ import (
 //This file contains definitions of executor programs command wise
 
 func signIn(c *cli.Context) error {
-	var user user
+	var user remote.User
 	var print = fmt.Print
 	var println = fmt.Println
 	print(COLOR_BLUE)
-	print("Hey! please enter your ")
+	print("Hey!! please enter your ")
 	println("Email:\t")
 	fmt.Scan(&user.Email)
+	println("Username\t")
+	fmt.Scan(&user.Username)
 	println("Password:\t")
 	pass, _ := terminal.ReadPassword(1)
+	user.Password = hash(pass)
 	println("Authenticating...")
-	user.setPassword(pass)
+	isnew, err := authUser(&user)
+	if err != nil {
+		print(COLOR_RED)
+		print(err.Error())
 
+	}
+	print(COLOR_GREEN)
+	if isnew {
+		println("New Account Created!!")
+	} else {
+		println("Authentication Completed !! \nHello, ", user.Username)
+	}
 	return nil
 }
 
@@ -56,3 +71,6 @@ func disconnectLocalTunnel(c *cli.Context) error {
 	disconnectLocalyForwardedPort(int(port))
 	return nil
 }
+
+//   ruchiyadav1821
+// Labneighbours@netflix

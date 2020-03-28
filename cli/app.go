@@ -1,6 +1,9 @@
-package shree
+package main
 
 import (
+	"fmt"
+	"net"
+	"net/rpc"
 	"os"
 	"strings"
 	"time"
@@ -52,4 +55,19 @@ func getAppDir() string {
 
 	home, _ := os.UserHomeDir()
 	return home + string(os.PathSeparator) + ".shree"
+}
+
+const backendPort = 8089
+
+func getBackendClient() *rpc.Client {
+
+	cli, err := rpc.Dial("tcp", net.JoinHostPort("", fmt.Sprint(backendPort)))
+	if err != nil {
+		//handle error
+	}
+	return cli
+}
+
+func main() {
+
 }

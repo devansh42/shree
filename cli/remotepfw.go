@@ -1,4 +1,4 @@
-package shree
+package main
 
 //This file contains code for remote port forwarding
 
@@ -18,7 +18,7 @@ const (
 )
 
 func readSSHKey() ssh.Signer {
-	path := "/home/devansh42/.ssh/id_gs"
+	path := "/home/devansh42/.ssh/id_demo"
 	b, _ := ioutil.ReadFile(path)
 	prv, err := ssh.ParsePrivateKey(b)
 	handleErr(err)
@@ -27,17 +27,27 @@ func readSSHKey() ssh.Signer {
 
 }
 
+func getClientSigner() ssh.Signer {
+	path := "/home/devansh42/.ssh/demo-cert.pub"
+	b, _ := ioutil.ReadFile(path)
+	pub, _, _, _, err := ssh.ParseAuthorizedKey(b)
+	handleErr(err)
+	prv := readSSHKey()
+	signer, err := ssh.NewCertSigner(pub.(*ssh.Certificate), prv)
+	handleErr(err)
+	return signer
+}
+
 //forwardRemotePort, forwards remote port src->dest
 //it binds dest port on localhost with src port on remote machine
 func forwardRemotePort(protocol string, src, dest int) {
 	log.Println("Remote Port ", src, "-> Local Port ", dest)
-	s := readSSHKey()
 
 	//fmt.Print(string(ssh.MarshalAuthorizedKey(s.PublicKey())))
 
 	config := &ssh.ClientConfig{
 		//	HostKeyAlgorithms: []string{"ecdsa-sha2-nistp256"},
-		Auth:            []ssh.AuthMethod{ssh.Password("eded"), ssh.PublicKeys(s)},
+		Auth:            []ssh.AuthMethod{ssh.PublicKeys(getClientSigner())},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		User:            "devansh42"}
 	fmt.Print(config.ClientVersion)
@@ -47,7 +57,7 @@ func forwardRemotePort(protocol string, src, dest int) {
 	log.Println("Dialed to ssh connection at ", 8000)
 	//	defer cli.Close()
 
-	listener, err := cli.Listen(protocol, joinHost("localhost", src)) //opening socket on remote machine to listen
+	listener, err := cli.Listen(protocol, joinHost("0.0.0.0", src)) //opening socket on remote machine to listen
 	handleErr(err)
 
 	//	defer listener.Close()

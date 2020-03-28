@@ -1,6 +1,7 @@
 package shree
 
 import (
+	"bytes"
 	"io"
 	"io/ioutil"
 	"log"
@@ -13,6 +14,9 @@ import (
 
 //This file implements basic server for backend
 
+func publikeycallback() {
+
+}
 func initServer() {
 	listener, err := net.Listen("tcp", joinHost("", 8000)) //Listen @ port 2200
 	if err != nil {
@@ -24,19 +28,20 @@ func initServer() {
 	//serverconfig.NoClientAuth = true
 	certc := new(ssh.CertChecker)
 	certc.IsUserAuthority = userAuthenticator
-	serverconfig.PasswordCallback = func(conm ssh.ConnMetadata, password []byte) (*ssh.Permissions, error) {
-		return new(ssh.Permissions), nil
-	}
-	// serverconfig.PublicKeyCallback = func(connm ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
-	// 	// 	p, err := certc.Authenticate(connm, key) //Authenticates Certificates
-	// 	// 	if err != nil {
-
-	// 	// 		log.Print("auth erro", err)
-	// 	// 		return nil, err
-	// 	// 	}
-
-	// 	return p, err
+	//serverconfig.PublicKeyCallback = certc.Authenticate
+	// serverconfig.PasswordCallback = func(conm ssh.ConnMetadata, password []byte) (*ssh.Permissions, error) {
+	// 	return nil, nil
 	// }
+	serverconfig.PublicKeyCallback = func(connm ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
+		p, err := certc.Authenticate(connm, key) //Authenticates Certificates
+		if err != nil {
+			log.Print("auth error", err)
+			return nil, err
+		}
+		log.Print(p)
+		return p, err
+
+	}
 	for {
 		inconn, err := listener.Accept()
 		if err != nil {
@@ -181,18 +186,18 @@ func handleServerConn(conn *ssh.ServerConn, newch <-chan ssh.NewChannel, newrq <
 }
 func userAuthenticator(auth ssh.PublicKey) bool {
 	//IsUserAuthority
-	hm, _ := os.UserHomeDir()
-	f, err := ioutil.ReadFile(hm + "/.ssh/ca_user_key.pub")
+	f, err := ioutil.ReadFile("/home/devansh42/.ssh/ca_user_key.pub")
 	handleErr(err)
-	pub, err := ssh.ParsePublicKey(f)
+	pub, _, _, _, err := ssh.ParseAuthorizedKey(f)
 	handleErr(err)
-	pm, am := pub.Marshal(), auth.Marshal()
-	for i := 0; i < len(pm); i++ {
-		if pm[i] != am[i] {
-			return false
-		}
-	}
-	return true
+	// pm, am := pub.Marshal(), auth.Marshal()
+	// for i := 0; i < len(pm); i++ {
+	// 	if pm[i] != am[i] {
+	// 		return false
+	// 	}
+	// }
+
+	return bytes.Equal(auth.Marshal(), pub.Marshal())
 
 }
 

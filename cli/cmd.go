@@ -1,5 +1,10 @@
-package shree
+package main
 
+// func initCommands() cli.App{
+// 	return nil
+// }
+
+//
 /*
 func initCommands() cli.App {
 

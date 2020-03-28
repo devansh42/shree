@@ -1,4 +1,4 @@
-package shree
+package main
 
 import (
 	"bytes"
