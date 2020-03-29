@@ -3,9 +3,7 @@ package main
 //This file contains code for remote port forwarding
 
 import (
-	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net"
 	"strconv"
@@ -14,47 +12,57 @@ import (
 )
 
 const (
-	SSH_PORT = 22
+	SSH_PORT           = "2200"
+	SSH_HOST           = "ssh.bsnl.online"
+	keysshclientsocket = "sshclient"
 )
 
-func readSSHKey() ssh.Signer {
-	path := "/home/devansh42/.ssh/id_demo"
-	b, _ := ioutil.ReadFile(path)
-	prv, err := ssh.ParsePrivateKey(b)
-	handleErr(err)
+//getClientSigner returns signed certificate for authentication
+func getClientSigner() ssh.Signer {
+	pass := askForPassword()
+	havepub, havepr, havecert, pki := searchForPKICredentials(currentUser.Uid)
+	if havepub == havepr == havecert == true {
 
-	return prv
+	}
+	cert, _, _, _, err := ssh.ParseAuthorizedKey(pki.cert)
+	if err != nil {
+		//handle
+	}
+	prv, err := ssh.ParsePrivateKeyWithPassphrase(pki.prv, pass)
+	if err != nil {
+		println("Error occured while processing Private Ket : ", err.Error())
+	}
+	signer, err := ssh.NewCertSigner(cert.(*ssh.Certificate), prv)
+	if err != nil {
 
+	}
+	return signer
 }
 
-func getClientSigner() ssh.Signer {
-	path := "/home/devansh42/.ssh/demo-cert.pub"
-	b, _ := ioutil.ReadFile(path)
-	pub, _, _, _, err := ssh.ParseAuthorizedKey(b)
-	handleErr(err)
-	prv := readSSHKey()
-	signer, err := ssh.NewCertSigner(pub.(*ssh.Certificate), prv)
-	handleErr(err)
-	return signer
+func getHostCallBack() ssh.HostKeyCallback {
+	cert := getServerCertificate()
+	return ssh.FixedHostKey(cert)
 }
 
 //forwardRemotePort, forwards remote port src->dest
 //it binds dest port on localhost with src port on remote machine
 func forwardRemotePort(protocol string, src, dest int) {
-	log.Println("Remote Port ", src, "-> Local Port ", dest)
+	if !socketCollection.have(keysshclientsocket) {
+		config := &ssh.ClientConfig{
+			Auth:            []ssh.AuthMethod{ssh.PublicKeys(getClientSigner())},
+			HostKeyCallback: getHostCallBack(),
+			User:            currentUser.Username}
+		//fmt.Print(config.ClientVersion)
 
-	//fmt.Print(string(ssh.MarshalAuthorizedKey(s.PublicKey())))
+		cli, err := ssh.Dial(protocol, net.JoinHostPort(SSH_HOST, SSH_PORT), config)
+		if err != nil {
+			println("Couldn't establish connection to backend server due to\t", err.Error())
+			println("Please try again or report if problem persists")
+		}
+		socketCollection.add(keysshclientsocket, cli)
 
-	config := &ssh.ClientConfig{
-		//	HostKeyAlgorithms: []string{"ecdsa-sha2-nistp256"},
-		Auth:            []ssh.AuthMethod{ssh.PublicKeys(getClientSigner())},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		User:            "devansh42"}
-	fmt.Print(config.ClientVersion)
+	}
 
-	cli, err := ssh.Dial(protocol, joinHost("localhost", 8000), config)
-	handleErr(err)
-	log.Println("Dialed to ssh connection at ", 8000)
 	//	defer cli.Close()
 
 	listener, err := cli.Listen(protocol, joinHost("0.0.0.0", src)) //opening socket on remote machine to listen

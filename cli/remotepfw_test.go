@@ -23,8 +23,9 @@ func TestPortZeroListen(t *testing.T) {
 		listen, err := net.Listen("tcp", net.JoinHostPort("", "0"))
 
 		if err != nil {
-			t.Log("Couldn't listen ", err.Error())
 			t.Log(x)
+			t.Log("Couldn't listen ", err.Error())
+
 			return
 		}
 		defer listen.Close()

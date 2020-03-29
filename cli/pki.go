@@ -8,13 +8,19 @@ import (
 	"encoding/pem"
 	"fmt"
 
+	"github.com/devansh42/shree/remote"
+
+	"golang.org/x/crypto/ssh/terminal"
+
 	"golang.org/x/crypto/ssh"
 )
 
 const (
-	keyprvkey  = "prvkey"
-	keypubkey  = "pubkey"
-	keycertkey = "certkey"
+	keyprvkey            = "prvkey"
+	keypubkey            = "pubkey"
+	keycertkey           = "certkey"
+	hostCertificateURL   = ""
+	keyservercertificate = "cert_server"
 )
 
 type pkicredentials struct {
@@ -24,6 +30,9 @@ type pkicredentials struct {
 var (
 	marshalauthkey = ssh.MarshalAuthorizedKey
 	parseauthkey   = ssh.ParseAuthorizedKey
+
+	//decryptPrivateKey decrypts private key encrypted with password
+	decryptPrivateKey = ssh.ParsePrivateKeyWithPassphrase
 )
 
 //generateNewKeyPair generates new rsa priavte key and ssh key pair
@@ -59,9 +68,43 @@ func writePairToDB(pub, prv []byte, uid int64) {
 	localdb.Put([]byte(fmt.Sprint(keyprvkey, uid)), prv, nil)
 }
 
-//decryptPrivateKey decrypts private key encrypted with password
-func decryptPrivateKey(prvkey, passwd []byte) (ssh.Signer, error) {
-	return ssh.ParsePrivateKeyWithPassphrase(prvkey, passwd)
+//askForPassword for password and returns it
+func askForPassword() []byte {
+	println("\nEnter password to continue\t")
+	b, err := terminal.ReadPassword(1)
+	if err != nil {
+		//handle this error
+	}
+	return b
+}
+
+//fetchServerCertificateAndPersist, fetches certificate from default certificate repo
+func fetchServerCertificateAndPersist() (cert ssh.PublicKey, err error) {
+	println("Fetching Server Certifcate....")
+	cert = new(ssh.Certificate)
+	err = getBackendClient().Call("Backend.GetCAPublicCertificate", new(remote.CertificateRequest), cert)
+	if err != nil {
+		return nil, err
+	}
+	println("Cetificate Fetched\nFingerprint\n", ssh.FingerprintLegacyMD5(cert))
+	localdb.Put([]byte(keyservercertificate), marshalauthkey(cert), nil)
+	return cert, nil
+}
+
+func getServerCertificate() (cert ssh.PublicKey) {
+	//Let's search in localdb
+	bc, err := localdb.Get([]byte(keyservercertificate), nil)
+	if err != nil {
+		cert, err = fetchServerCertificateAndPersist()
+
+	} else {
+		cert, _, _, _, err = parseauthkey(bc)
+		if err != nil { //Couldn't parse
+			cert, err = fetchServerCertificateAndPersist()
+
+		}
+	}
+	return
 }
 
 //hash makes md5 hash

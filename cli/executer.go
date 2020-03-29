@@ -6,10 +6,8 @@ import (
 	"log"
 
 	"github.com/devansh42/shree/remote"
-
-	"golang.org/x/crypto/ssh/terminal"
-
 	cli "github.com/urfave/cli/v2"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 //This file contains definitions of executor programs command wise
@@ -72,7 +70,12 @@ func disconnectLocalTunnel(c *cli.Context) error {
 	return nil
 }
 
+//exposeRemoteTunnel, connects local port to local port
 func exposeRemoteTunnel(c *cli.Context) error {
-
+	expose := c.Uint("expose")
+	println("Trying to Expose ", expose, " .......")
+	//Exposes port
+	//0 src ports specifies any port
+	forwardRemotePort("tcp", 0, int(expose))
 	return nil
 }

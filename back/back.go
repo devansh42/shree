@@ -62,8 +62,14 @@ func (b *Backend) Auth(user, response *remote.User) (err error) {
 
 func (b *Backend) IssueCertificate(req *remote.CertificateRequest, resp *ssh.Certificate) error {
 	err := getCAClient().Call("CA.GetNewCertificate", req, resp)
-
+	//So far we just relaying the request to the ca
 	return err
+}
+
+func (b *Backend) GetCAPublicCertificate(req *remote.CertificateRequest, resp *ssh.Certificate) error {
+	return getCAClient().Call("CA.GetCAPublicCertificate", req, resp)
+	//So far we just relaying the request to the ca
+
 }
 
 func hashPasswd(b []byte) []byte {

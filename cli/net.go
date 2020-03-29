@@ -35,3 +35,12 @@ func (s *socketcollection) add(name string, conn closeable) {
 	}(conn, &closer)
 
 }
+
+func (s *socketcollection) have(name string) bool {
+	for k, _ := range s.socketmap {
+		if k == name {
+			return true
+		}
+	}
+	return false
+}

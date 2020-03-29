@@ -16,6 +16,9 @@ import (
 
 const keyuser = "user"
 
+//currentUser, is the current user
+var currentUser *remote.User
+
 //authUser authenticates user it creates if doesn't exists
 func authUser(user *remote.User) (bool, error) {
 	cli := getBackendClient()
@@ -32,6 +35,7 @@ func authUser(user *remote.User) (bool, error) {
 	//Lets overwrite the user
 	b, _ := json.Marshal(resp)
 	localdb.Put([]byte(keyuser), b, nil)
+	currentUser = resp //Is the current logined user
 	return resp.IsNew, nil
 }
 
@@ -72,9 +76,9 @@ func manageCertificate(user *remote.User) {
 		}
 		marshaled := ssh.MarshalAuthorizedKey(cert)
 		print(COLOR_GREEN)
-		println("Certicate Generated\nHash")
+		println("Certicate Generated\nFinger Print")
 		print(COLOR_YELLOW)
-		fmt.Printf("\n%x", hash(marshaled))
+		fmt.Printf("\n%x", ssh.FingerprintLegacyMD5(cert))
 		resetConsoleColor()
 		//Writting certificate to db
 		localdb.Put([]byte(fmt.Sprint(keycertkey, user.Uid)), marshaled, nil)
