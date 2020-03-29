@@ -55,3 +55,9 @@ func initCommands() cli.App {
 	return app
 }
 */
+
+//For Remote port forwarding use expose command
+//expose=port to forward on local system
+//-http
+//-https (don't support yet)
+//Provides custom tcp based tunneling also provides custom console.log and making

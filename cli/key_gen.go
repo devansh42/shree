@@ -23,8 +23,7 @@ type pkicredentials struct {
 
 var (
 	marshalauthkey = ssh.MarshalAuthorizedKey
-
-	parseauthkey = ssh.ParseAuthorizedKey
+	parseauthkey   = ssh.ParseAuthorizedKey
 )
 
 //generateNewKeyPair generates new rsa priavte key and ssh key pair

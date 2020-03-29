@@ -72,5 +72,7 @@ func disconnectLocalTunnel(c *cli.Context) error {
 	return nil
 }
 
-//   ruchiyadav1821
-// Labneighbours@netflix
+func exposeRemoteTunnel(c *cli.Context) error {
+
+	return nil
+}

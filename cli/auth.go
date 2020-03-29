@@ -44,14 +44,24 @@ func manageCertificate(user *remote.User) {
 		println(err.Error())
 		resetConsoleColor()
 		switch err.(type) {
-		case interface { //Checking for error behaviour and
+		//Checking for error behaviour this covers all the errors related to certificate
+
+		case interface {
 			Broken() bool
 		}:
 			println("Requesting new Certificate for you...")
 
 		default:
 			println("Generating new credentials for you...")
-			//need
+			//now will generate new rsa key pair
+			prv, pub := generateNewKeyPair(pass)
+			writePairToDB(pub, prv, user.Uid) //Persisting to db
+			pubkey, _, _, _, err = parseauthkey(pub)
+			if err != nil {
+				println("Broken public key\t", err.Error())
+				println("Please try again or report the problem it if problem persists.")
+				return
+			}
 		}
 		cert := new(ssh.Certificate)
 		err = getBackendClient().Call("Backend.IssueCertificate", &remote.CertificateRequest{User: *user, PublicKey: pubkey}, cert)
@@ -64,7 +74,7 @@ func manageCertificate(user *remote.User) {
 		print(COLOR_GREEN)
 		println("Certicate Generated\nHash")
 		print(COLOR_YELLOW)
-		fmt.Printf("%x", hash(marshaled))
+		fmt.Printf("\n%x", hash(marshaled))
 		resetConsoleColor()
 		//Writting certificate to db
 		localdb.Put([]byte(fmt.Sprint(keycertkey, user.Uid)), marshaled, nil)
