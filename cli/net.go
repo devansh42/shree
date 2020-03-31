@@ -1,7 +1,24 @@
 package main
 
-//This file contains socket realted primitives used
+import (
+	"fmt"
+	"net"
+)
 
+type Forwardedport struct {
+	DestPort string
+	SrcPort  string
+	Listener net.Listener
+}
+type LocalForwardedport struct {
+	Forwardedport
+}
+
+type RemoteForwardedport struct {
+	Forwardedport
+}
+
+//This file contains socket realted primitives used
 type socket chan bool
 type socketcollection struct {
 	socketmap map[string]socket
@@ -43,4 +60,8 @@ func (s *socketcollection) have(name string) bool {
 		}
 	}
 	return false
+}
+
+func joinHost(host string, port interface{}) string {
+	return net.JoinHostPort(host, fmt.Sprint(port))
 }

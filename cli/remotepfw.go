@@ -3,10 +3,9 @@ package main
 //This file contains code for remote port forwarding
 
 import (
+	"fmt"
 	"io"
-	"log"
 	"net"
-	"strconv"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -15,6 +14,13 @@ const (
 	SSH_PORT           = "2200"
 	SSH_HOST           = "ssh.bsnl.online"
 	keysshclientsocket = "sshclient"
+)
+
+var (
+	//Connection for long lived tcp connections
+	sshClientConnection *ssh.Client
+	//remoteForwardedPorts lists remote forwarded port
+	remoteForwardedPorts []*Forwardedport
 )
 
 //getClientSigner returns signed certificate for authentication
@@ -52,63 +58,74 @@ func forwardRemotePort(protocol string, src, dest int) {
 			Auth:            []ssh.AuthMethod{ssh.PublicKeys(getClientSigner())},
 			HostKeyCallback: getHostCallBack(),
 			User:            currentUser.Username}
-		//fmt.Print(config.ClientVersion)
 
 		cli, err := ssh.Dial(protocol, net.JoinHostPort(SSH_HOST, SSH_PORT), config)
 		if err != nil {
 			println("Couldn't establish connection to backend server due to\t", err.Error())
 			println("Please try again or report if problem persists")
+			return
 		}
+
 		socketCollection.add(keysshclientsocket, cli)
-
+		sshClientConnection = cli
 	}
 
-	//	defer cli.Close()
+	//opening socket on remote machine to listen
+	//here we are using port no. 0, so let remote side can decide the port to be open
+	listener, err := sshClientConnection.Listen(protocol, joinHost("0.0.0.0", 0))
+	if err != nil {
+		println("Couldn't forward port to remote machine\t", err.Error())
+		return
+	}
+	//It means we have successfully established the connection, lets examine which port assigned to us
+	_, port, _ := net.SplitHostPort(listener.Addr().String())
+	rfp := &Forwardedport{fmt.Sprint(dest), fmt.Sprint(port), listener}
+	//Register forwarded ports
+	remoteForwardedPorts = append(remoteForwardedPorts, rfp)
+	//Remote new generater remote listener
+	print(COLOR_GREEN_UNDERLINED)
+	println("Successfully Port Forwarding Established")
+	println(listener.Addr().String(), "\t->\t", joinHost("", rfp.DestPort))
+	resetConsoleColor()
 
-	listener, err := cli.Listen(protocol, joinHost("0.0.0.0", src)) //opening socket on remote machine to listen
-	handleErr(err)
+	handleForwardedListener(rfp)
 
-	//	defer listener.Close()
-	//go func() {
-	defer cli.Close()
-	defer listener.Close()
+}
+
+func handleForwardedListener(conn *Forwardedport) {
+	listener := conn.Listener
+	//Running forever
 	for {
-		oconn, err := net.Dial(protocol, joinHost("localhost", dest))
-		handleErr(err)
-
-		iconn, err := listener.Accept()
-		handleErr(err)
-
-		go handle(iconn, oconn)
+		//Making a connection for relaying data to local port
+		relayConn, err := net.Dial("tcp", joinHost("", conn.DestPort))
+		if err != nil {
+			//Couldn't handle this connection
+			continue
+		}
+		acceptedConn, err := listener.Accept() //Accepting connection at remote port
+		if err != nil {
+			//handle it
+			continue
+		}
+		go handleConnectionIO(acceptedConn, relayConn)
 
 	}
-	//}()
-
 }
 
-func joinHost(host string, port int) string {
-	return net.JoinHostPort(host, strconv.Itoa(port))
-}
-
-func handle(iconn, oconn net.Conn) {
-	var chDone = make(chan bool)
-	defer iconn.Close()
+//handleConnectionIO handle i/o b/w relayed connection and accepted connections
+func handleConnectionIO(acceptedConn, relayConn net.Conn) {
+	defer acceptedConn.Close()
+	defer relayConn.Close()
+	closer := make(chan bool)
 	go func() {
-		_, err := io.Copy(iconn, oconn)
-		if err != nil {
-			log.Println(err)
-		}
-
-		chDone <- true
+		io.Copy(relayConn, acceptedConn)
+		closer <- true
 	}()
+
 	go func() {
-		_, err := io.Copy(oconn, iconn)
-		if err != nil {
-			log.Println(err)
-		}
-		chDone <- true
-
+		io.Copy(acceptedConn, relayConn)
+		closer <- true
 	}()
-	<-chDone
+	<-closer //Whenever it hears a signal it closes both sides of remote connection
 
 }

@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"strconv"
@@ -14,73 +13,31 @@ import (
 
 const keyLocalpfw = "localpfw"
 
+var (
+	locallyForwardedPort []*Forwardedport
+)
+
 //forwardLocalPort, forwards local port src->dest
 //This listens connection from src and relay them to dest
 //protocol defines protocol to be used tcp or udp
 func forwardLocalPort(protocol string, src, dest int) (err error) {
-	relay, err := net.Listen(protocol, net.JoinHostPort("", strconv.Itoa(src)))
+	listener, err := net.Listen(protocol, joinHost("", src))
 	if err != nil {
 		log.Print("Couldn't connect ports due to : ", err.Error())
 		return err
 	}
 
-	socketCollection.add(strings.Join([]string{"flp", strconv.Itoa(src)}, ":"), relay) //Adding listener
+	lfp := &Forwardedport{fmt.Sprint(dest), fmt.Sprint(src), listener}
 
-	handleConnetions := func(inc, outc net.Conn) {
-		defer outc.Close()
-		var cl = make(chan bool)
-		go func() {
-			_, err := io.Copy(outc, inc)
-			if err != nil {
-				//Somethings
-				log.Print("Problem while reading from connection\t", err.Error())
-			}
-			cl <- true
-		}()
-		go func() {
-			_, err := io.Copy(outc, inc)
-			if err != nil {
-				log.Print("Problem while reading from connection\t", err.Error())
+	locallyForwardedPort = append(locallyForwardedPort, lfp)
 
-				//Somethings
-			}
-		}()
-		<-cl //waiting for end of conversation
-	}
+	//Printing status
+	print(COLOR_GREEN_UNDERLINED)
+	println("Successfully Port Forwarding Established")
+	println(listener.Addr().String(), "\t->\t", joinHost("", lfp.DestPort))
+	resetConsoleColor()
 
-	go func() { //to handle connections
-		defer relay.Close()
-
-		for {
-			inconn, err := relay.Accept()
-			if err != nil {
-				log.Print("Couldn't accept incoming connection due to : ", err.Error())
-			}
-			outconn, err := net.Dial(protocol, net.JoinHostPort("", strconv.Itoa(dest)))
-			if err != nil {
-				log.Print("Couldn't dial to dest port due to : ", err.Error())
-			}
-
-			//Below two lines relay the connection
-			handleConnetions(inconn, outconn)
-		}
-
-	}()
-
-	//Let's this action to the localdb for logging and ux purposes
-	v, err := localdb.Get([]byte(keyLocalpfw), nil)
-	var ar = make([][2]int, 1)
-
-	if err != nil {
-		//Key doesn't exists
-
-		ar[0] = [2]int{src, dest}
-	} else {
-		json.Unmarshal(v, &ar) //Error check suppressed
-		ar = append(ar, [2]int{src, dest})
-	}
-	b, _ := json.Marshal(ar)
-	localdb.Put([]byte(keyLocalpfw), b, nil)
+	handleForwardedListener(lfp)
 
 	return
 }
