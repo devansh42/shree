@@ -18,3 +18,7 @@ type CertificateRequest struct {
 	User      User
 	PublicKey ssh.PublicKey
 }
+
+type CertificateResponse struct {
+	Bytes []byte
+}

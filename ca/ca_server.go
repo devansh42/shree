@@ -13,7 +13,7 @@ func StartServer() {
 	listener, err := net.Listen("tcp", net.JoinHostPort("", fmt.Sprint(ServerPort)))
 	panicErr(err)
 	server := rpc.NewServer()
-	server.Register(CA{}) //Registering service
+	server.Register(&CA{}) //Registering service
 	server.Accept(listener)
 
 }

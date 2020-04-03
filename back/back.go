@@ -72,6 +72,10 @@ func (b *Backend) GetCAPublicCertificate(req *remote.CertificateRequest, resp *s
 
 }
 
+func (b *Backend) GetCAUserPublicCertificate(req *remote.CertificateRequest, cert *ssh.Certificate) error {
+	return getCAClient().Call("CA.GetCAUserPublicCertificate", req, cert)
+}
+
 func hashPasswd(b []byte) []byte {
 	m := md5.New()
 
