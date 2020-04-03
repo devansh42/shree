@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/rand"
 	"io/ioutil"
+	"log"
 	"os"
 	"sync"
 	"time"
@@ -11,30 +12,60 @@ import (
 )
 
 const (
-	CAPRIVATEFILE = "CAPRIVATE"
+	CAPRIVATEFILE = "SHREE_CAPRIVATE"
 )
 
 func main() {
-	//Main function to launch
 
+	initCA()
+	StartServer() //Starting the server
 }
 
 func initCA() {
 	onceLock = new(sync.Once)
-	onceLock.Do(getCAPrivateKey) //Loads certificates private key in memory
+	onceLock.Do(func() {
+		getCAPrivateKey()
+		getCAHostPubliKey()
+		getCAUserPubliKey()
+	}) //Loads certificates private key in memory
 }
 
 var onceLock *sync.Once
 var privateKeySigner ssh.Signer
+var marshaledHostPublicKey, marshaledUserPublicKey []byte
+
+//getCAUserPubliKey loads ca user public key
+func getCAUserPubliKey() {
+	p := os.Getenv(CAUSERPUBKEY)
+	b, err := ioutil.ReadFile(p)
+	if err != nil {
+		log.Fatal("Couldn't load user public key\t", err)
+	}
+	marshaledUserPublicKey = b
+}
+
+//getCAHostPubliKey loads ca host public key
+func getCAHostPubliKey() {
+	p := os.Getenv(CAHOSTPUBKEY)
+	b, err := ioutil.ReadFile(p)
+	if err != nil {
+		log.Fatal("Couldn't load host public key\t", err)
+	}
+	marshaledHostPublicKey = b
+}
 
 //getCAPrivateKey loads ca private key memory
 //to be used with sync.Once
 func getCAPrivateKey() {
 	prpath := os.Getenv(CAPRIVATEFILE)
 	b, err := ioutil.ReadFile(prpath)
-	panicErr(err)
+	if err != nil {
+		log.Println("Couldn't read ca private key", err.Error())
+	}
 	signer, err := ssh.ParsePrivateKey(b)
-	panicErr(err)
+	if err != nil {
+		log.Println("Couldn't parse private key ", err.Error())
+	}
 	privateKeySigner = signer
 }
 

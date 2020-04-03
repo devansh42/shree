@@ -1,11 +1,16 @@
 package main
 
 import (
+	"crypto/rand"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/rpc"
 	"os"
 	"testing"
+	"time"
+
+	"golang.org/x/crypto/ssh"
 
 	"github.com/devansh42/shree/remote"
 )
@@ -27,6 +32,84 @@ func TestAuthSignupUser(t *testing.T) {
 	t.Log(currentUser, isnew) //As after login it sets current user
 }
 
+//TestManageCertificateWithCredentials tests the manage certificate function
+//if user has credentials locally available but don't have certificate
+func TestManageCertificateWithCredentials(t *testing.T) {
+	initApp()
+	defer cleanup()
+	startDemoRPCServer(t) //Starting demo server
+
+	bpass := []byte("hello1234")
+
+	user := new(remote.User)
+	user.Uid = 1
+	user.Username = "devansh42"
+
+	bprv, bpub := generateNewKeyPair(bpass)
+	writePairToDB(bpub, bprv, 1)
+	manageCertificate(user, bpass)
+
+	localdb.Delete([]byte(sprint(keycertkey, 1)), nil)
+	localdb.Delete([]byte(sprint(keyprvkey, 1)), nil)
+	localdb.Delete([]byte(sprint(keypubkey, 1)), nil)
+
+}
+
+//TestManageCertificateWithoutCredentials tests the manage certificate function
+//if user havn't credentials locally available
+func TestManageCertificateWithoutCredentials(t *testing.T) {
+	initApp()
+	defer cleanup()
+	startDemoRPCServer(t) //Starting demo server
+
+	bpass := []byte("hello1234")
+
+	user := new(remote.User)
+	user.Username = "devansh42"
+	user.Uid = 1
+
+	cert := new(remote.CertificateResponse)
+	bprv, bpub := generateNewKeyPair(bpass)
+
+	writePairToDB(bpub, bprv, 1)
+
+	cli := getBackendClient()
+	err := cli.Call("Backend.IssueCertificate", &remote.CertificateRequest{User: *user, PublicKey: bpub}, cert)
+	if err != nil {
+		t.Fatal(err)
+	}
+	localdb.Put([]byte(sprint(keycertkey, 1)), cert.Bytes, nil)
+
+	manageCertificate(user, bpass)
+
+	localdb.Delete([]byte(sprint(keycertkey, 1)), nil)
+	localdb.Delete([]byte(sprint(keyprvkey, 1)), nil)
+	localdb.Delete([]byte(sprint(keypubkey, 1)), nil)
+
+}
+
+//TestManageCertificateFoundCredentials tests conditions when found valid credentials
+func TestManageCertificateFoundCredentials(t *testing.T) {
+	initApp()
+	defer cleanup()
+	startDemoRPCServer(t) //Starting demo server
+
+	bpass := []byte("hello1234")
+
+	user := new(remote.User)
+	user.Username = "devansh42"
+	user.Uid = 1
+
+	// bprv, bpub := generateNewKeyPair(bpass)
+	// writePairToDB(bpub, bprv, 1)
+	manageCertificate(user, bpass)
+
+	localdb.Delete([]byte(sprint(keycertkey, 1)), nil)
+	localdb.Delete([]byte(sprint(keyprvkey, 1)), nil)
+	localdb.Delete([]byte(sprint(keypubkey, 1)), nil)
+
+}
+
 //Export for backend related server
 type Backend struct{}
 
@@ -44,6 +127,32 @@ func (b *Backend) Auth(user, resp *remote.User) error {
 
 	} else {
 	}
+
+	return nil
+}
+
+//IssueCertificate issues new certificate related to user request, this implementation is specific to this implementation
+func (b *Backend) IssueCertificate(req *remote.CertificateRequest, resp *remote.CertificateResponse) error {
+	cert := new(ssh.Certificate)
+	cert.ValidPrincipals = []string{req.User.Username}
+	cert.CertType = ssh.UserCert
+	cert.ValidBefore = uint64(time.Now().Add(time.Minute * 60 * 24 * 365).Unix())
+	prvb, err := ioutil.ReadFile("./ca_user_key")
+	if err != nil {
+		return err
+	}
+
+	prv, err := ssh.ParsePrivateKey(prvb)
+	if err != nil {
+		return err
+	}
+	pub, _, _, _, _ := parseauthkey(req.PublicKey)
+	cert.Key = pub
+	err = cert.SignCert(rand.Reader, prv)
+	if err != nil {
+		return err
+	}
+	resp.Bytes = marshalauthkey(cert)
 
 	return nil
 }

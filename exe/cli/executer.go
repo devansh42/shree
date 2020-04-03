@@ -51,6 +51,9 @@ func signIn(c *cli.Context) error {
 	} else {
 		println("Authentication Completed !! \nHello, ", user.Username)
 	}
+	println("Initializing Access Key Managment....")
+	kpass := askForPassword()
+	manageCertificate(&user, kpass)
 	return nil
 }
 

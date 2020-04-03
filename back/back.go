@@ -2,82 +2,86 @@ package main
 
 import (
 	"crypto/md5"
-	"database/sql"
 	"errors"
-
-	"golang.org/x/crypto/ssh"
+	"fmt"
+	"os"
+	"time"
 
 	"github.com/devansh42/shree/remote"
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-redis/redis"
 )
 
 type Backend struct{}
 
-const databaseurl = ""
-
 func (b *Backend) Auth(user, response *remote.User) (err error) {
-	db, err := sql.Open("mysql", databaseurl)
-	if err != nil {
-		return
-	}
-	pstmt, err := db.Prepare("select uid,email from users where username=?  limit 1")
-	if err != nil {
-		return
-	}
-	rs, err := pstmt.Query(user.Username, hashPasswd(user.Password))
-	if err != nil {
-		return
-	}
-	if rs.Next() {
-		//Have User
-		rs.Scan(&user.Uid, &user.Email)
-		pstmt, err = db.Prepare("select uid from users where username=? and password=? limit 1")
-		rs, err = pstmt.Query(user.Username, hashPasswd(user.Password))
-		if err != nil {
+	db := redis.NewClient(&redis.Options{Network: "tcp", Addr: os.Getenv(REDIS_SERVER_ADDR)})
+	defer db.Close()
+	xkey := hash(sprint("u:", user.Username))
+	re := db.Get(xkey)
+	if re.Err() != nil {
+		//username doesn't exsists
+		//Let's create one
+		uid := time.Now().Unix()
+		r := db.HMSet(hash(sprint("u", uid)), map[string]interface{}{
+			"u": user.Username,
+			"e": user.Email,
+			"p": hash(string(user.Password)),
+		})
+		_, err = r.Result()
 
-		}
-		if !rs.Next() {
-			//Auth failed
-			return errors.New("401") //User not found invalid credentials
-		}
-		response = user
-		return
-	} else {
-		//Lets make a new user
-		pstmt, err = db.Prepare("insert into users(username,password,email)values(?,?,?)")
-		res, err := pstmt.Exec(user.Username, hashPasswd(user.Password), user.Email)
 		if err != nil {
-			//Handle error
+			//handle it
+			return errors.New("Internal server error")
 		}
-		id, err := res.LastInsertId()
-		if err != nil {
 
-		}
-		user.IsNew = true
-		user.Uid = id
-		response = user //New User created
+		response.Email = user.Email
+		response.Username = user.Username
+		response.Uid = uid
+		response.IsNew = true
+		return
 	}
+
+	uid, _ := re.Int64()
+
+	key := hash(sprint("u", uid))
+	resp := db.HGetAll(key)
+	res, err := resp.Result()
+	if err != nil {
+		return errors.New("Internal server error")
+
+	}
+	if res["p"] != hash(string(user.Password)) {
+		//username/password not matched
+		return errors.New("401") //User  found but invalid credentials
+	}
+
+	//User Authenticated
+	response.Email = res["e"]
+	response.Username = res["u"]
+	response.Uid = uid
+
 	return
 }
 
-func (b *Backend) IssueCertificate(req *remote.CertificateRequest, resp *ssh.Certificate) error {
+func (b *Backend) IssueCertificate(req *remote.CertificateRequest, resp *remote.CertificateResponse) error {
 	err := getCAClient().Call("CA.GetNewCertificate", req, resp)
 	//So far we just relaying the request to the ca
 	return err
 }
 
-func (b *Backend) GetCAPublicCertificate(req *remote.CertificateRequest, resp *ssh.Certificate) error {
-	return getCAClient().Call("CA.GetCAPublicCertificate", req, resp)
+func (b *Backend) GetCAPublicCertificate(req *remote.CertificateRequest, resp *remote.CertificateResponse) error {
+	return getCAClient().Call("CA.GetCAHostPublicKey", req, resp)
 	//So far we just relaying the request to the ca
 
 }
 
-func (b *Backend) GetCAUserPublicCertificate(req *remote.CertificateRequest, cert *ssh.Certificate) error {
-	return getCAClient().Call("CA.GetCAUserPublicCertificate", req, cert)
+func (b *Backend) GetCAUserPublicCertificate(req *remote.CertificateRequest, cert *remote.CertificateResponse) error {
+	return getCAClient().Call("CA.GetCAUserPublicKey", req, cert)
 }
 
-func hashPasswd(b []byte) []byte {
+func hash(s string) string {
 	m := md5.New()
-
-	return m.Sum(b)
+	return string(m.Sum([]byte(s)))
 }
+
+var sprint = fmt.Sprint

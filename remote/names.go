@@ -1,9 +1,5 @@
 package remote
 
-import (
-	"golang.org/x/crypto/ssh"
-)
-
 //User represents a shree user
 type User struct {
 	Email    string `json:email`
@@ -16,7 +12,7 @@ type User struct {
 //CertificateRequest contains requests for certificate generation
 type CertificateRequest struct {
 	User      User
-	PublicKey ssh.PublicKey
+	PublicKey []byte
 }
 
 type CertificateResponse struct {

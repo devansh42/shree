@@ -59,7 +59,21 @@ func TestFetchAndPersistCAPublicHostCertificate(t *testing.T) {
 	localdb.Delete([]byte(keyservercertificate), nil)
 }
 
-func TestGetCAPublicHostCertificateFromLocaldbrOrFetch(t *testing) {
+//TestGetCAPublicHostCertificate fetches certificate from remote reop if not found locally
+func TestGetCAPublicHostCertificate(t *testing.T) {
+	//It fetches ca from local db or fetch if didn't find one
+	initApp()
+	defer cleanup()
+	localdb.Delete([]byte(keyservercertificate), nil) //Deleting previos certificate if any
+
+	startDemoRPCServer(t)
+	cert := getServerCertificate() //Fetched
+	t.Log("Certificate Fetched")
+	t.Log(string(marshalauthkey(cert)))
+	cert = getServerCertificate() //Getting it locally
+	t.Log("Certificate loaded locally")
+	t.Log(string(marshalauthkey(cert)))
+	localdb.Delete([]byte(keyservercertificate), nil) //Deleting certificate
 
 }
 

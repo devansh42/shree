@@ -11,8 +11,6 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	"golang.org/x/crypto/ssh/terminal"
-
 	"github.com/devansh42/shree/remote"
 )
 
@@ -41,61 +39,64 @@ func authUser(user *remote.User, cli *rpc.Client) (bool, error) {
 	return resp.IsNew, nil
 }
 
-func manageCertificate(user *remote.User) {
-	println("Please enter your Password for initalizing Access Key Managment")
-	pass, _ := terminal.ReadPassword(1)
-	pubkey, err := validatelocalCertificate(user, pass)
+func manageCertificate(user *remote.User, pass []byte) {
+	var pub, prv []byte
+	dpub, err := validatelocalCertificate(user, pass)
 	if err != nil {
 		print(COLOR_RED)
 		println(err.Error())
 		resetConsoleColor()
+		type certificateErrType interface {
+			Broken() bool
+		}
 		switch err.(type) {
 		//Checking for error behaviour this covers all the errors related to certificate
 
-		case interface {
-			Broken() bool
-		}:
+		case certificateErrType:
 			println("Requesting new Certificate for you...")
-
+			pub = marshalauthkey(dpub)
 		default:
 			println("Generating new credentials for you...")
 			//now will generate new rsa key pair
-			prv, pub := generateNewKeyPair(pass)
+			prv, pub = generateNewKeyPair(pass)
 			writePairToDB(pub, prv, user.Uid) //Persisting to db
-			pubkey, _, _, _, err = parseauthkey(pub)
-			if err != nil {
-				println("Broken public key\t", err.Error())
-				println("Please try again or report the problem it if problem persists.")
-				return
-			}
+
 		}
-		cert := new(ssh.Certificate)
+		cert := new(remote.CertificateResponse)
 		cli := getBackendClient()
 		if cli == nil {
-			println("Couldn't request authentication certificate")
+			println("Couldn't request  certificate authentication")
 			return
 		}
-		cli.Call("Backend.IssueCertificate", &remote.CertificateRequest{User: *user, PublicKey: pubkey}, cert)
+		err = cli.Call("Backend.IssueCertificate", &remote.CertificateRequest{User: *user, PublicKey: pub}, cert)
 		if err != nil {
 			print(COLOR_RED)
 			println("Couldn't issue cetificate on your behalf due to\t", err.Error())
 			resetConsoleColor()
 		}
-		marshaled := ssh.MarshalAuthorizedKey(cert)
+		marshaled := cert.Bytes
+
 		print(COLOR_GREEN)
-		println("Certicate Generated\nFinger Print")
+		println("Certicate Generated\nCertificate Finger Print")
 		print(COLOR_YELLOW)
-		fmt.Printf("\n%x", ssh.FingerprintLegacyMD5(cert))
+		certpub, _, _, _, _ := parseauthkey(cert.Bytes)
+		fmt.Printf("%x", ssh.FingerprintLegacyMD5(certpub))
 		resetConsoleColor()
 		//Writting certificate to db
 		localdb.Put([]byte(fmt.Sprint(keycertkey, user.Uid)), marshaled, nil)
+	} else {
+		print(COLOR_GREEN)
+		println("Found Local Credential!!")
+		resetConsoleColor()
 	}
 }
 
+//validatelocalCertificate validates credentials locally,
+// generally it checks expiry date & principals etc
 func validatelocalCertificate(user *remote.User, pass []byte) (dpub ssh.PublicKey, err error) {
 
 	hpr, hpub, hcert, pki := searchForPKICredentials(user.Uid)
-	if hpr == hpub == hcert == true {
+	if hpr && hpub {
 		//We have all the credentials
 
 		//Let's Parse the private key
@@ -109,31 +110,34 @@ func validatelocalCertificate(user *remote.User, pass []byte) (dpub ssh.PublicKe
 			err = errors.New("Couldn't parse your public due to\t" + err.Error())
 			return nil, err
 		}
-
-		dpub, _ = ssh.NewPublicKey(signer)
+		dpub := signer.PublicKey() //Public key corrosponding to private key
 		if !bytes.Equal(marshalauthkey(dpub), pki.pub) {
 			//Private key and public key pair match
 			err = errors.New("Invalid Public Key")
 			return nil, err
 		}
-
-		certp, _, _, _, _ := parseauthkey(pki.cert)
-		cert := certp.(*ssh.Certificate)
-		vb := cert.ValidBefore
-		now := time.Now().Unix()
-		if vb < uint64(now) {
-			//Not Valid
-			//handle this
-			err = certificateErr{Reason: "Certificate Expired!!", expired: true}
-			return nil, err
-		}
-		if !bytes.Equal(marshalauthkey(cert.Key), pki.pub) {
-			//Certificate and key pair matched
-			err = certificateErr{Reason: "Invalid Certificate", broken: true}
-			return nil, err
+		if hcert {
+			certp, _, _, _, _ := parseauthkey(pki.cert)
+			cert := certp.(*ssh.Certificate)
+			vb := cert.ValidBefore
+			now := time.Now().Unix()
+			if vb < uint64(now) {
+				//Not Valid
+				//handle this
+				err = certificateErr{Reason: "Certificate Expired!!", expired: true}
+				return dpub, err
+			}
+			if !bytes.Equal(marshalauthkey(cert.Key), pki.pub) {
+				//Certificate and key pair matched
+				err = certificateErr{Reason: "Invalid Certificate", broken: true}
+				return dpub, err
+			}
+		} else {
+			//We have valid key pair but doesn't have certificate
+			return dpub, certificateErr{broken: true, Reason: "Certificate not found"}
 		}
 	} else {
-		err = errors.New("Broken Key Pair not found")
+		err = errors.New("Broken Key Pair found")
 	}
 	return
 }

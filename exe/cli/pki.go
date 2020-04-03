@@ -56,12 +56,25 @@ func generateNewKeyPair(passphrase []byte) (rsaprv []byte, sshpub []byte) {
 //Searches for certificate,pub key and pr key for given user
 func searchForPKICredentials(uid int64) (havepub, havepr, havecert bool, pkic pkicredentials) {
 	pr, err := localdb.Get([]byte(fmt.Sprint(keyprvkey, uid)), nil)
-	havepr = err == nil
+	if err != nil {
+		return
+	}
+	havepr, _ = localdb.Has([]byte(fmt.Sprint(keyprvkey, uid)), nil)
+
 	pu, err := localdb.Get([]byte(fmt.Sprint(keypubkey, uid)), nil)
-	havepub = err == nil
+	if err != nil {
+		return
+	}
+	havepub, _ = localdb.Has([]byte(fmt.Sprint(keypubkey, uid)), nil)
+
 	cert, err := localdb.Get([]byte(fmt.Sprint(keycertkey, uid)), nil)
-	havecert = err == nil
+	if err != nil {
+		return
+	}
+	havecert, _ = localdb.Has([]byte(fmt.Sprint(keycertkey, uid)), nil)
+
 	pkic = pkicredentials{pr, pu, cert}
+
 	return
 }
 
