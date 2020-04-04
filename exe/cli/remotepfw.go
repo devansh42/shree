@@ -5,6 +5,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"os"
 
@@ -27,18 +28,18 @@ var (
 )
 
 //getClientSigner returns signed certificate for authentication
-func getClientSigner() (ssh.Signer, error) {
+func getClientSigner(bpass []byte) (ssh.Signer, error) {
 	if currentUser == nil {
 		//No logined user
 		return nil, errors.New("It seems you are no longer been authenticted. Please authenticate yourself")
 	}
-	pass := askForPassword()
+	pass := bpass
 
 	havepub, havepr, havecert, pki := searchForPKICredentials(currentUser.Uid)
 	if havepub && havepr && havecert {
 		///don't know what to do
 	} else {
-		return nil, errors.New("Invali or Broken Credentials found, re-authenticate yourself.")
+		return nil, errors.New("Invalid or Broken Credentials found, re-authenticate yourself.")
 	}
 
 	cert, _, _, _, err := ssh.ParseAuthorizedKey(pki.cert)
@@ -64,8 +65,8 @@ func getHostCallBack() ssh.HostKeyCallback {
 
 //forwardRemotePort, forwards remote port src->dest
 //it binds dest port on localhost with src port on remote machine
-func forwardRemotePort(protocol string, dest int) string {
-	signer, err := getClientSigner()
+func forwardRemotePort(protocol string, dest int, bpass []byte) string {
+	signer, err := getClientSigner(bpass)
 	if err != nil {
 		print(COLOR_RED)
 		println("Couldn't establish remote tunnel:\n", err.Error())
@@ -87,7 +88,7 @@ func forwardRemotePort(protocol string, dest int) string {
 
 		sshClientConnection = cli
 	}
-
+	log.Print("New Request")
 	//opening socket on remote machine to listen
 	//here we are using port no. 0, so let remote side can decide the port to be open
 	listener, err := sshClientConnection.Listen(protocol, exe.JoinHost("0.0.0.0", 0))
@@ -95,6 +96,7 @@ func forwardRemotePort(protocol string, dest int) string {
 		println("Couldn't forward port to remote machine\t", err.Error())
 		return ""
 	}
+
 	//It means we have successfully established the connection, lets examine which port assigned to us
 	_, port, _ := net.SplitHostPort(listener.Addr().String())
 	rfp := &exe.Forwardedport{fmt.Sprint(dest), fmt.Sprint(port), listener, make(exe.Closerch)}
@@ -106,7 +108,8 @@ func forwardRemotePort(protocol string, dest int) string {
 	println(listener.Addr().String(), "\t->\t", exe.JoinHost("", rfp.DestPort))
 	resetConsoleColor()
 
-	exe.HandleForwardedListener(rfp)
+	go exe.HandleForwardedListener(rfp)
+
 	return port
 }
 

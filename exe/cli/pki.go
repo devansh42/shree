@@ -96,7 +96,7 @@ func askForPassword() []byte {
 
 //fetchServerCertificateAndPersist, fetches certificate from default certificate repo
 func fetchServerCertificateAndPersist() (ssh.PublicKey, error) {
-	println("Fetching Server Certifcate....")
+	println("Fetching CA Host Certifcate....")
 	cert := new(remote.CertificateResponse)
 	cli := getBackendClient()
 	if cli == nil {

@@ -37,6 +37,7 @@ func TestAuthSignupUser(t *testing.T) {
 func TestManageCertificateWithCredentials(t *testing.T) {
 	initApp()
 	defer cleanup()
+	defer cleanupDemoCredentials()
 	startDemoRPCServer(t) //Starting demo server
 
 	bpass := []byte("hello1234")
@@ -48,10 +49,6 @@ func TestManageCertificateWithCredentials(t *testing.T) {
 	bprv, bpub := generateNewKeyPair(bpass)
 	writePairToDB(bpub, bprv, 1)
 	manageCertificate(user, bpass)
-
-	localdb.Delete([]byte(sprint(keycertkey, 1)), nil)
-	localdb.Delete([]byte(sprint(keyprvkey, 1)), nil)
-	localdb.Delete([]byte(sprint(keypubkey, 1)), nil)
 
 }
 
@@ -60,6 +57,7 @@ func TestManageCertificateWithCredentials(t *testing.T) {
 func TestManageCertificateWithoutCredentials(t *testing.T) {
 	initApp()
 	defer cleanup()
+	defer cleanupDemoCredentials()
 	startDemoRPCServer(t) //Starting demo server
 
 	bpass := []byte("hello1234")
@@ -67,24 +65,8 @@ func TestManageCertificateWithoutCredentials(t *testing.T) {
 	user := new(remote.User)
 	user.Username = "devansh42"
 	user.Uid = 1
-
-	cert := new(remote.CertificateResponse)
-	bprv, bpub := generateNewKeyPair(bpass)
-
-	writePairToDB(bpub, bprv, 1)
-
-	cli := getBackendClient()
-	err := cli.Call("Backend.IssueCertificate", &remote.CertificateRequest{User: *user, PublicKey: bpub}, cert)
-	if err != nil {
-		t.Fatal(err)
-	}
-	localdb.Put([]byte(sprint(keycertkey, 1)), cert.Bytes, nil)
-
+	generateAndPersistCredentialsForTest(user, bpass, t)
 	manageCertificate(user, bpass)
-
-	localdb.Delete([]byte(sprint(keycertkey, 1)), nil)
-	localdb.Delete([]byte(sprint(keyprvkey, 1)), nil)
-	localdb.Delete([]byte(sprint(keypubkey, 1)), nil)
 
 }
 
@@ -92,6 +74,7 @@ func TestManageCertificateWithoutCredentials(t *testing.T) {
 func TestManageCertificateFoundCredentials(t *testing.T) {
 	initApp()
 	defer cleanup()
+	defer cleanupDemoCredentials()
 	startDemoRPCServer(t) //Starting demo server
 
 	bpass := []byte("hello1234")
@@ -103,10 +86,6 @@ func TestManageCertificateFoundCredentials(t *testing.T) {
 	// bprv, bpub := generateNewKeyPair(bpass)
 	// writePairToDB(bpub, bprv, 1)
 	manageCertificate(user, bpass)
-
-	localdb.Delete([]byte(sprint(keycertkey, 1)), nil)
-	localdb.Delete([]byte(sprint(keyprvkey, 1)), nil)
-	localdb.Delete([]byte(sprint(keypubkey, 1)), nil)
 
 }
 
@@ -167,4 +146,32 @@ func startDemoRPCServer(t *testing.T) {
 	rpc.Register(&Backend{})
 	t.Log("RPC server listening on :6500")
 	go rpc.Accept(listener)
+}
+
+//generateAndPersistCredentialsForTest generates credentials for testing
+//and issue a new certificate and persist it
+//grpc server should already be started
+func generateAndPersistCredentialsForTest(user *remote.User, bpass []byte, t *testing.T) {
+	cert := new(remote.CertificateResponse)
+	bprv, bpub := generateNewKeyPair(bpass)
+	t.Log("New Key Pair Generated")
+	writePairToDB(bpub, bprv, 1)
+	t.Log("Key Pair written to the localdb")
+	cli := getBackendClient()
+	err := cli.Call("Backend.IssueCertificate", &remote.CertificateRequest{User: *user, PublicKey: bpub}, cert)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("New certificate generated")
+	localdb.Put([]byte(sprint(keycertkey, 1)), cert.Bytes, nil)
+	t.Log("Certificate written to db")
+}
+
+//cleanupDemoCredentials, cleanups demo credentials
+func cleanupDemoCredentials() {
+
+	localdb.Delete([]byte(sprint(keycertkey, 1)), nil)
+	localdb.Delete([]byte(sprint(keyprvkey, 1)), nil)
+	localdb.Delete([]byte(sprint(keypubkey, 1)), nil)
+
 }

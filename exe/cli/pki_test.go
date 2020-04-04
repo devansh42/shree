@@ -10,11 +10,11 @@ import (
 )
 
 func TestGenerateNewKeyPair(t *testing.T) {
-	prv, pub := generateNewKeyPair([]byte("hello123"))
+	prv, pub := generateNewKeyPair(testpasswd)
 	t.Log("Private Key\n", string(prv))
 	t.Log("Public Key\n", string(pub))
 	//Lets decode private key
-	_, err := ssh.ParsePrivateKeyWithPassphrase(prv, []byte("hello123"))
+	_, err := ssh.ParsePrivateKeyWithPassphrase(prv, testpasswd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -26,7 +26,7 @@ func TestWriteKeys(t *testing.T) {
 	defer cleanup()
 	initApp()
 	for x := 0; x < 5; x++ {
-		prv, pub := generateNewKeyPair([]byte("hello123"))
+		prv, pub := generateNewKeyPair(testpasswd)
 		writePairToDB(pub, prv, int64(x))
 		//Lets read is back
 		pu, err := localdb.Get([]byte(sprint(keypubkey, x)), nil)
@@ -78,7 +78,7 @@ func TestGetCAPublicHostCertificate(t *testing.T) {
 }
 
 func (b *Backend) GetCAPublicCertificate(req *remote.CertificateRequest, cert *remote.CertificateResponse) error {
-	f, err := ioutil.ReadFile("./id_host-cert.pub")
+	f, err := ioutil.ReadFile("./ca_host_key.pub")
 	if err != nil {
 		return err
 	}

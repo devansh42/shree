@@ -98,7 +98,8 @@ func exposeRemoteTunnel(c *cli.Context) error {
 	println("Trying to Expose ", expose, " .......")
 	//Exposes port
 	//0 src ports specifies any port
-	forwardRemotePort("tcp", int(expose))
+	bpass := askForPassword()
+	forwardRemotePort("tcp", int(expose), bpass)
 	return nil
 }
 
