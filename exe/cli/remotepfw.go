@@ -3,6 +3,7 @@ package main
 //This file contains code for remote port forwarding
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -13,8 +14,8 @@ import (
 )
 
 const (
-	SSH_PORT           = "2200"
-	SSH_HOST           = "ssh.bsnl.online"
+	SSH_PORT           = "SSH_PORT" //For Environment variables
+	SSH_HOST           = "SSH_HOST" //For Environment variables
 	keysshclientsocket = "sshclient"
 )
 
@@ -26,25 +27,34 @@ var (
 )
 
 //getClientSigner returns signed certificate for authentication
-func getClientSigner() ssh.Signer {
-	pass := askForPassword()
-	havepub, havepr, havecert, pki := searchForPKICredentials(currentUser.Uid)
-	if havepub == havepr == havecert == true {
-
+func getClientSigner() (ssh.Signer, error) {
+	if currentUser == nil {
+		//No logined user
+		return nil, errors.New("It seems you are no longer been authenticted. Please authenticate yourself")
 	}
+	pass := askForPassword()
+
+	havepub, havepr, havecert, pki := searchForPKICredentials(currentUser.Uid)
+	if havepub && havepr && havecert {
+		///don't know what to do
+	} else {
+		return nil, errors.New("Invali or Broken Credentials found, re-authenticate yourself.")
+	}
+
 	cert, _, _, _, err := ssh.ParseAuthorizedKey(pki.cert)
 	if err != nil {
+		return nil, errors.New("Broken Certificate found, please re-authenticate")
 		//handle
 	}
 	prv, err := ssh.ParsePrivateKeyWithPassphrase(pki.prv, pass)
 	if err != nil {
-		println("Error occured while processing Private Key : ", err.Error())
+		return nil, errors.New("Error occured while processing Private Key : " + err.Error())
 	}
 	signer, err := ssh.NewCertSigner(cert.(*ssh.Certificate), prv)
 	if err != nil {
-
+		return nil, errors.New("Couldn't sign certificate with private key, need re-authentication " + err.Error())
 	}
-	return signer
+	return signer, nil
 }
 
 func getHostCallBack() ssh.HostKeyCallback {
@@ -54,18 +64,25 @@ func getHostCallBack() ssh.HostKeyCallback {
 
 //forwardRemotePort, forwards remote port src->dest
 //it binds dest port on localhost with src port on remote machine
-func forwardRemotePort(protocol string, src, dest int) {
+func forwardRemotePort(protocol string, dest int) string {
+	signer, err := getClientSigner()
+	if err != nil {
+		print(COLOR_RED)
+		println("Couldn't establish remote tunnel:\n", err.Error())
+		resetConsoleColor()
+		return ""
+	}
 	if sshClientConnection == nil {
 		config := &ssh.ClientConfig{
-			Auth:            []ssh.AuthMethod{ssh.PublicKeys(getClientSigner())},
+			Auth:            []ssh.AuthMethod{ssh.PublicKeys(signer)},
 			HostKeyCallback: getHostCallBack(),
 			User:            currentUser.Username}
 
-		cli, err := ssh.Dial(protocol, exe.JoinHost(SSH_HOST, SSH_PORT), config)
+		cli, err := ssh.Dial(protocol, exe.JoinHost(os.Getenv(SSH_HOST), os.Getenv(SSH_PORT)), config)
 		if err != nil {
 			println("Couldn't establish connection to backend server due to\t", err.Error())
 			println("Please try again or report if problem persists")
-			return
+			return ""
 		}
 
 		sshClientConnection = cli
@@ -76,7 +93,7 @@ func forwardRemotePort(protocol string, src, dest int) {
 	listener, err := sshClientConnection.Listen(protocol, exe.JoinHost("0.0.0.0", 0))
 	if err != nil {
 		println("Couldn't forward port to remote machine\t", err.Error())
-		return
+		return ""
 	}
 	//It means we have successfully established the connection, lets examine which port assigned to us
 	_, port, _ := net.SplitHostPort(listener.Addr().String())
@@ -90,7 +107,7 @@ func forwardRemotePort(protocol string, src, dest int) {
 	resetConsoleColor()
 
 	exe.HandleForwardedListener(rfp)
-
+	return port
 }
 
 //disconnectRemoteForwardedPort disconnects remotely forwarded port
