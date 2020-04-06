@@ -13,6 +13,7 @@ import (
 
 const (
 	CAPRIVATEFILE = "SHREE_CAPRIVATE"
+	CAHOSTPRIKEY  = "SHREE_CAHOSTPRIVATE"
 )
 
 func main() {
@@ -31,7 +32,7 @@ func initCA() {
 }
 
 var onceLock *sync.Once
-var privateKeySigner ssh.Signer
+var hostPrivatekey, privateKeySigner ssh.Signer
 var marshaledHostPublicKey, marshaledUserPublicKey []byte
 
 //getCAUserPubliKey loads ca user public key
@@ -52,6 +53,20 @@ func getCAHostPubliKey() {
 		log.Fatal("Couldn't load host public key\t", err)
 	}
 	marshaledHostPublicKey = b
+}
+
+//Get Hosts private key
+func getCAHostPrivateKey() {
+	p := os.Getenv(CAHOSTPRIKEY)
+	b, err := ioutil.ReadFile(p)
+	if err != nil {
+		log.Fatal("Couldn't load host private key\t", err)
+	}
+	pr, err := ssh.ParsePrivateKey(b)
+	if err != nil {
+		log.Fatal("Couldn't parse host private key")
+	}
+	hostPrivatekey = pr
 }
 
 //getCAPrivateKey loads ca private key memory
@@ -78,18 +93,24 @@ func panicErr(err error) {
 
 //getCertificate signes the certificate with validity of 1 yr
 //it only return non nil if any problem occured in signing process
-func getCertificate(username string, tobesigned ssh.PublicKey) (*ssh.Certificate, error) {
+func getCertificate(username string, tobesigned ssh.PublicKey, certType uint32) (*ssh.Certificate, error) {
 	cert := new(ssh.Certificate)
 	cert.Key = tobesigned
 	cert.ValidPrincipals = []string{username} //Valid  principal is the username of the user
 	now := time.Now()
 	cert.Serial = uint64(now.Unix())
-	cert.CertType = ssh.UserCert //Sets certificate type
+	cert.CertType = certType //Sets certificate type
 	//Valid for a year
 	cert.ValidBefore = uint64(now.Add(time.Hour * 24 * 365).Unix())
 	//Permits only port forwarding
 	cert.Extensions = map[string]string{"permit-port-forwarding": ""}
-	err := cert.SignCert(rand.Reader, privateKeySigner)
+	var signer ssh.Signer
+	if certType == ssh.HostCert {
+		signer = hostPrivatekey
+	} else {
+		signer = privateKeySigner
+	}
+	err := cert.SignCert(rand.Reader, signer)
 	if err != nil {
 		return nil, err
 	}

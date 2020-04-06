@@ -18,7 +18,7 @@ func (c *CA) GetNewCertificate(req *remote.CertificateRequest, resp *remote.Cert
 	if err != nil {
 		return err
 	}
-	cert, err := getCertificate(req.User.Username, pubkey)
+	cert, err := getCertificate(req.User.Username, pubkey, ssh.UserCert)
 	if err != nil {
 		return err
 	}
@@ -36,4 +36,19 @@ func (c *CA) GetCAUserPublicKey(req *remote.CertificateRequest, cert *remote.Cer
 func (c *CA) GetCAHostPublicKey(req *remote.CertificateRequest, cert *remote.CertificateResponse) (err error) {
 	cert.Bytes = marshaledHostPublicKey
 	return nil
+}
+
+func (c *CA) IssueHostCertificate(req *remote.HostCertificateRequest, resp *remote.CertificateResponse) (err error) {
+
+	pubkey, _, _, _, err := ssh.ParseAuthorizedKey(req.PublicKey)
+	if err != nil {
+		return err
+	}
+	cert, err := getCertificate(req.Principal, pubkey, ssh.HostCert)
+	if err != nil {
+		return err
+	}
+	resp.Bytes = ssh.MarshalAuthorizedKey(cert)
+
+	return
 }

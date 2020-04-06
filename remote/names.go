@@ -15,6 +15,11 @@ type CertificateRequest struct {
 	PublicKey []byte
 }
 
+type HostCertificateRequest struct {
+	PublicKey []byte
+	Principal string //Principal to be attached with certificate
+}
+
 type CertificateResponse struct {
 	Bytes []byte
 }

@@ -28,7 +28,7 @@ func initTestEnvironment(t *testing.T) {
 func startTestHttpServerForPortRange(t *testing.T) {
 
 	for i := 0; i < 15; i++ {
-		startTestHttpServer(3000 + i)
+		exe.StartTestHttpServer(3000 + i)
 
 	}
 	t.Log("All http server running")
@@ -90,8 +90,8 @@ func TestRemotePortForwardingWithCredentials(t *testing.T) {
 
 	//Creating fake user
 	currentUser = new(remote.User)
-	currentUser.Uid = 1
 	currentUser.Username = "devansh42"
+	currentUser.Uid = 1
 
 	//generating demo credentials
 	generateAndPersistCredentialsForTest(currentUser, testpasswd, t)
@@ -132,7 +132,7 @@ func startDemoSSHServer(t *testing.T) {
 	certChecker := new(ssh.CertChecker)
 	certChecker.IsUserAuthority = func(auth ssh.PublicKey) bool {
 
-		fb, _ := ioutil.ReadFile("./ca_user_key.pub")
+		fb, _ := ioutil.ReadFile("../../keys/ca_user_key.pub")
 
 		pk, _, _, _, _ := parseauthkey(fb)
 
@@ -141,9 +141,9 @@ func startDemoSSHServer(t *testing.T) {
 		return o
 	}
 	config.PublicKeyCallback = callmaker(certChecker)
-	fb, _ := ioutil.ReadFile("./id_host")
+	fb, _ := ioutil.ReadFile("../../keys/id_host")
 	signer, _ := ssh.ParsePrivateKey(fb)
-	bcert, _ := ioutil.ReadFile("./id_host-cert.pub")
+	bcert, _ := ioutil.ReadFile("../../keys/id_host-cert.pub")
 	pert, _, _, _, err := parseauthkey(bcert)
 	fatalTestErr(t, err)
 	realsigner, err := ssh.NewCertSigner(pert.(*ssh.Certificate), signer)

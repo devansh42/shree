@@ -43,13 +43,13 @@ func initServer() {
 	if err != nil {
 		log.Fatal("Failed to Listen")
 	}
-	log.Printf("Starting server at port %d .....", port)
+	log.Printf("Starting server at port %s .....", port)
 
 	serverConfig := new(ssh.ServerConfig)
-	serverConfig.AddHostKey(getHostKey())
 	certc := new(ssh.CertChecker)
 	certc.IsUserAuthority = userAuthenticator
 	serverConfig.PublicKeyCallback = publicCallBackFunc(certc)
+	serverConfig.AddHostKey(getHostKey())
 	for {
 		inconn, err := sshListener.Accept()
 		if err != nil {
@@ -91,11 +91,10 @@ func handleTCPFwdRequest(ch *ssh.Request, servconn *ssh.ServerConn) {
 		log.Println("Couldn't start server on given port", err)
 		return
 	}
-
+	var xp struct {
+		Port uint32 //Port on which connection is listening at remote side
+	}
 	if ch.WantReply {
-		var xp struct {
-			Port uint32 //Port on which connection is listening at remote side
-		}
 
 		_, pp, _ := net.SplitHostPort(listener.Addr().String())
 		pi, _ := strconv.Atoi(pp)
@@ -106,20 +105,21 @@ func handleTCPFwdRequest(ch *ssh.Request, servconn *ssh.ServerConn) {
 	for {
 		inconn, err := listener.Accept()
 		if err != nil {
-			log.Print(err)
+			log.Print("Error while accepting connection:", err.Error())
 			continue //Couldn't continue
 		}
 
 		raddr := inconn.RemoteAddr().String()
 		host, sport, _ := net.SplitHostPort(raddr)
 		port, _ := strconv.Atoi(sport)
-		pp := ppt{p.Address, p.Port, host, uint32(port)}
+		pp := ppt{p.Address, xp.Port, host, uint32(port)}
 		b := ssh.Marshal(&pp)
 
 		sch, rch, err := servconn.OpenChannel("forwarded-tcpip", b)
 		if err != nil {
 			//handle error
-			log.Print("couldn't open channel ", err.Error())
+			log.Print("couldn't open channel for request ", pp, err.Error())
+			continue
 		}
 		go ssh.DiscardRequests(rch)
 		go exe.HandleConnectionIO(inconn, sch)
@@ -165,20 +165,59 @@ func handleNewServerConn(conn *ssh.ServerConn, newch <-chan ssh.NewChannel, newr
 
 }
 func userAuthenticator(auth ssh.PublicKey) bool {
-	certc := new(ssh.Certificate)
-	getBackendClient().Call("Backend.GetCAUserPublicCertificate", new(remote.CertificateRequest), certc)
+	if caUserPublicKey == nil {
 
-	return bytes.Equal(auth.Marshal(), certc.SignatureKey.Marshal())
+		certc := new(remote.CertificateResponse)
+		cli := getBackendClient()
+		if cli == nil {
+			log.Fatal("Couldn't reach to backend server")
+		}
+		cli.Call("Backend.GetCAUserPublicCertificate", new(remote.CertificateRequest), certc)
+		caUserPublicKey = certc.Bytes
 
+	}
+	o := bytes.Equal(ssh.MarshalAuthorizedKey(auth), caUserPublicKey)
+	return o
 }
 
 func getHostKey() ssh.Signer {
-	fname := os.Getenv(SHREE_SSH_PRIVATE_KEY)
-	f, err := ioutil.ReadFile(fname) //host private key
+	if hostKey == nil {
 
-	k, err := ssh.ParsePrivateKey(f)
-	if err != nil {
-		log.Fatal("Couldn't parse host private key may be it is broken ", err.Error())
+		fname := os.Getenv(SHREE_SSH_PRIVATE_KEY)
+		f, err := ioutil.ReadFile(fname) //host private key
+		if err != nil {
+			log.Fatal("Couldn't read private key ", err.Error())
+		}
+		pr, err := ssh.ParsePrivateKey(f)
+		if err != nil {
+			log.Fatal("Couldn't parse host private key may be it is broken ", err.Error())
+		}
+
+		hostKey, err = ssh.NewCertSigner(hostCertifiate, pr)
+		if err != nil {
+			log.Fatal("Couldn't sign certificate : ", err.Error())
+		}
+
 	}
-	return k
+	//log.Print("From server ", string(hostKey.PublicKey().Marshal()))
+	return hostKey
 }
+
+/*
+func getHostKey() ssh.Signer {
+	fb, _ := ioutil.ReadFile("../../keys/id_host")
+	signer, _ := ssh.ParsePrivateKey(fb)
+	bcert, _ := ioutil.ReadFile("../../keys/id_host-cert.pub")
+	pert, _, _, _, err := ssh.ParseAuthorizedKey(bcert)
+	if err != nil {
+		log.Fatal(err)
+	}
+	realsigner, err := ssh.NewCertSigner(pert.(*ssh.Certificate), signer)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return realsigner
+}
+*/
+var caUserPublicKey []byte
+var hostKey ssh.Signer

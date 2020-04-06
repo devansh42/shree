@@ -116,7 +116,7 @@ func (b *Backend) IssueCertificate(req *remote.CertificateRequest, resp *remote.
 	cert.ValidPrincipals = []string{req.User.Username}
 	cert.CertType = ssh.UserCert
 	cert.ValidBefore = uint64(time.Now().Add(time.Minute * 60 * 24 * 365).Unix())
-	prvb, err := ioutil.ReadFile("./ca_user_key")
+	prvb, err := ioutil.ReadFile("../../keys/ca_user_key")
 	if err != nil {
 		return err
 	}

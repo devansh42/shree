@@ -3,6 +3,7 @@ package main
 //This file contains code for remote port forwarding
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"log"
@@ -59,8 +60,14 @@ func getClientSigner(bpass []byte) (ssh.Signer, error) {
 }
 
 func getHostCallBack() ssh.HostKeyCallback {
-	cert := getServerCertificate()
-	return ssh.FixedHostKey(cert)
+	certb := getServerCertificate()
+	certchecker := new(ssh.CertChecker)
+	certchecker.IsHostAuthority = func(auth ssh.PublicKey, address string) bool {
+		b := marshalauthkey(certb)
+		c := marshalauthkey(auth)
+		return bytes.Equal(b, c)
+	}
+	return certchecker.CheckHostKey
 }
 
 //forwardRemotePort, forwards remote port src->dest

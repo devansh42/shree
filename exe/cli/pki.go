@@ -95,7 +95,7 @@ func askForPassword() []byte {
 }
 
 //fetchServerCertificateAndPersist, fetches certificate from default certificate repo
-func fetchServerCertificateAndPersist() (ssh.PublicKey, error) {
+func fetchServerCertificateAndPersist() (*ssh.Certificate, error) {
 	println("Fetching CA Host Certifcate....")
 	cert := new(remote.CertificateResponse)
 	cli := getBackendClient()
@@ -110,7 +110,7 @@ func fetchServerCertificateAndPersist() (ssh.PublicKey, error) {
 	pk, _, _, _, _ := parseauthkey(cert.Bytes)
 	println("Cetificate Fetched\nFingerprint\n", ssh.FingerprintLegacyMD5(pk))
 	localdb.Put([]byte(keyservercertificate), cert.Bytes, nil)
-	return pk, nil
+	return pk.(*ssh.Certificate), nil
 }
 
 func getServerCertificate() (cert ssh.PublicKey) {

@@ -78,7 +78,7 @@ func TestGetCAPublicHostCertificate(t *testing.T) {
 }
 
 func (b *Backend) GetCAPublicCertificate(req *remote.CertificateRequest, cert *remote.CertificateResponse) error {
-	f, err := ioutil.ReadFile("./ca_host_key.pub")
+	f, err := ioutil.ReadFile("../../keys/ca_host_key.pub")
 	if err != nil {
 		return err
 	}

@@ -63,6 +63,11 @@ func (b *Backend) Auth(user, response *remote.User) (err error) {
 	return
 }
 
+func (b *Backend) IssueHostCertificate(req *remote.HostCertificateRequest, resp *remote.CertificateResponse) error {
+	err := getCAClient().Call("CA.IssueHostCertificate", req, resp)
+	return err
+}
+
 func (b *Backend) IssueCertificate(req *remote.CertificateRequest, resp *remote.CertificateResponse) error {
 	err := getCAClient().Call("CA.GetNewCertificate", req, resp)
 	//So far we just relaying the request to the ca

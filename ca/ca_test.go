@@ -13,7 +13,7 @@ const homedir = "/home/devansh42"
 func TestGetCertificate(t *testing.T) {
 	initTestEnviroment()
 	ca := new(CA)
-	b, _ := ioutil.ReadFile("./id_user.pub")
+	b, _ := ioutil.ReadFile("../../keys/id_user.pub")
 
 	user := new(remote.User)
 	user.Uid = 1
@@ -51,9 +51,9 @@ func TestGetUserPublicKey(t *testing.T) {
 }
 
 func initTestEnviroment() {
-	os.Setenv(CAUSERPUBKEY, "./ca_user_key.pub")
-	os.Setenv(CAHOSTPUBKEY, "./ca_host_key.pub")
-	os.Setenv(CAPRIVATEFILE, "./ca_user_key")
+	os.Setenv(CAUSERPUBKEY, "../../keys/ca_user_key.pub")
+	os.Setenv(CAHOSTPUBKEY, "../../keys/ca_host_key.pub")
+	os.Setenv(CAPRIVATEFILE, "../../keys/ca_user_key")
 
 	initCA()
 
