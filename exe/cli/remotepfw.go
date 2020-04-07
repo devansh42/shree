@@ -106,12 +106,13 @@ func forwardRemotePort(protocol string, dest int, bpass []byte) string {
 	//It means we have successfully established the connection, lets examine which port assigned to us
 	_, port, _ := net.SplitHostPort(listener.Addr().String())
 	rfp := &exe.Forwardedport{fmt.Sprint(dest), fmt.Sprint(port), listener, make(exe.Closerch)}
+	srcHost, _, _ := net.SplitHostPort(os.Getenv(SHREE_SSH_ADDR))
 	//Register forwarded ports
 	remoteForwardedPorts = append(remoteForwardedPorts, rfp)
 	//Remote new generater remote listener
 	print(COLOR_GREEN_UNDERLINED)
 	println("Successfully Port Forwarding Established")
-	println(listener.Addr().String(), "\t->\t", exe.JoinHost("", rfp.DestPort))
+	println(exe.JoinHost(srcHost, port), "\t->\t", exe.JoinHost("", rfp.DestPort))
 	resetConsoleColor()
 
 	go exe.HandleForwardedListener(rfp)
@@ -142,7 +143,7 @@ func disconnectRemoteForwardedPort(dest string) {
 
 //This function lists remote connected tunnels
 func listConnectedRemoteTunnel() {
-	remotehost := os.Getenv("SHREE_REMOTE_HOST")
+	remotehost := os.Getenv(SHREE_SSH_ADDR)
 	println("Remote connected ports")
 	print(COLOR_YELLOW)
 
