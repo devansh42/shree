@@ -38,12 +38,12 @@ func publicCallBackFunc(certc *ssh.CertChecker) func(conn ssh.ConnMetadata, key 
 }
 
 func initServer() {
-	port := os.Getenv(SHREE_SSH_PORT)
-	sshListener, err := net.Listen("tcp", exe.JoinHost("", port)) //Listen @ port 2200
+	addr := os.Getenv(SHREE_SSH_ADDR)
+	sshListener, err := net.Listen("tcp", addr) //Listen @ port 2200
 	if err != nil {
 		log.Fatal("Failed to Listen")
 	}
-	log.Printf("Starting server at port %s .....", port)
+	log.Printf("Starting server on %s .....", addr)
 
 	serverConfig := new(ssh.ServerConfig)
 	certc := new(ssh.CertChecker)

@@ -61,7 +61,7 @@ func getSSHClientConfig(t *testing.T) *ssh.ClientConfig {
 }
 
 func setupTestEnvironment(t *testing.T) {
-	os.Setenv(SHREE_SSH_PORT, sprint(7500))
+	os.Setenv(SHREE_SSH_ADDR, ":7500")
 	os.Setenv(SHREE_SSH_PRIVATE_KEY, "../../keys/id_host")
 	os.Setenv(SHREE_SSH_PUBLIC_KEY, "../../keys/id_host.pub")
 	os.Setenv(SHREE_BACKEND_ADDR, "localhost:6500") //Address of rpc server
@@ -122,7 +122,7 @@ func TestSSHServer(t *testing.T) {
 		exe.StartTestHttpServer(3000 + i)
 		t.Log("Http server is listening at ", 3000+i)
 	}
-	cli, err := ssh.Dial("tcp", exe.JoinHost("localhost", os.Getenv(SHREE_SSH_PORT)), getSSHClientConfig(t))
+	cli, err := ssh.Dial("tcp", os.Getenv(SHREE_SSH_ADDR), getSSHClientConfig(t))
 	if err != nil {
 		t.Fatal("Handshake failed due to ", err.Error())
 	}

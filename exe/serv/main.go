@@ -10,20 +10,23 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/rpc"
 	"os"
 	"time"
+
+	"github.com/devansh42/shree/exe"
 
 	"github.com/devansh42/shree/remote"
 	"golang.org/x/crypto/ssh"
 )
 
 const (
-	SHREE_SSH_PORT        = "SHREE_SSH_PORT"
 	SHREE_SSH_PRIVATE_KEY = "SHREE_SSH_PRIVATE_KEY"
 	SHREE_SSH_PUBLIC_KEY  = "SHREE_SSH_PUBLIC_KEY"
 	SHREE_BACKEND_ADDR    = "SHREE_BACKEND_ADDR"
 	SHREE_HOST_PRINCIPAL  = "SHREE_HOST_PRINCIPAL"
+	SHREE_SSH_ADDR        = "SHREE_SSH_ADDR"
 )
 
 var (
@@ -34,23 +37,30 @@ var (
 
 func main() {
 	appdir := getAppDir()
-	port := flag.Uint("port", 8099, "Port to start ssh server on")
-	prv := flag.String("prv", sprint(appdir, ps, "id_host"), "Path to private key")
-	pub := flag.String("pub", sprint(appdir, ps, "id_host.pub"), "Path to public key")
-	baddr := flag.String("baddr", "", "Address of Shree Backend server in host:port format")
-	host := flag.String("host", "", "Host address of this instance to included in certificate principal")
+	a := flag.String("addr", "", "(required) Addr to listen on")
+	prv := flag.String("prv", sprint(appdir, ps, "id_host"), "(required) Path to private key")
+	pub := flag.String("pub", sprint(appdir, ps, "id_host.pub"), "(required) Path to public key")
+	baddr := flag.String("baddr", "", "(required) Address of Shree Backend server in host:port format")
+	host := flag.String("host", "", "(required) Host address of this instance to included in certificate principal")
+	l := flag.String("logDir", "Application Directory", "Default log directory")
 	flag.Parse()
 	for !flag.Parsed() {
 		//Waiting for command line argument passing
 	}
-	os.Setenv(SHREE_SSH_PORT, sprint(*port))
+	os.Setenv(SHREE_SSH_ADDR, *a)
 	os.Setenv(SHREE_SSH_PRIVATE_KEY, *prv)
 	os.Setenv(SHREE_SSH_PUBLIC_KEY, *pub)
 	os.Setenv(SHREE_BACKEND_ADDR, *baddr)
 	os.Setenv(SHREE_HOST_PRINCIPAL, *host)
-	if *baddr == "" || *host == "" {
-		log.Fatal("Required args not found, baddr or host")
+	addrs := []string{*baddr, *host, *a}
+	for _, v := range addrs {
+		_, _, err := net.SplitHostPort(v)
+		if err != nil {
+			log.Fatal("Couldn't parse ", v, " due to ", err.Error())
+		}
 	}
+	wr := exe.SetLogFile(*l, appdir)
+	log.SetOutput(wr) //Setting a writter
 	initApp()
 	initServer() //Starts the testing ssh server
 }
