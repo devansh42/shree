@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"time"
 
@@ -123,14 +124,67 @@ func disconnectRemoteTunnel(c *cli.Context) error {
 func exitApp(c *cli.Context) error {
 	exitGracefully()
 	println("Exiting...")
-	<-time.After(time.Second)
+	<-time.After(time.Millisecond * 200) //200ms
 	os.Exit(0)
 	return nil
 }
 
-func printHelp(c *cli.Context) error {
-
+func whoAmI(c *cli.Context) error {
+	getCurrentUserInfo()
 	return nil
+}
+
+func getProps(c *cli.Context) (err error) {
+	for _, v := range c.FlagNames() {
+		switch v {
+		case "backend":
+			x := c.Bool(v)
+			if x {
+				println("Backend Addr\t", os.Getenv(SHREE_BACKEND_ADDR))
+			}
+		case "remote":
+			x := c.Bool(v)
+			if x {
+				println("SSH Addr\t", os.Getenv(SHREE_SSH_ADDR))
+
+			}
+		default:
+			err = errors.New("Couldn't found properties")
+
+		}
+	}
+	return
+}
+
+func setProps(c *cli.Context) (err error) {
+	for _, v := range c.FlagNames() {
+		switch v {
+		case "backend":
+			x := c.String(v)
+			if x != "" {
+				_, _, err = net.SplitHostPort(x)
+				if err != nil {
+					return
+				}
+				os.Setenv(SHREE_BACKEND_ADDR, x)
+				setProp(SHREE_BACKEND_ADDR, []byte(x))
+			}
+		case "remote":
+			x := c.String(v)
+			if x != "" {
+				_, _, err = net.SplitHostPort(x)
+				if err != nil {
+					return
+				}
+				os.Setenv(SHREE_SSH_ADDR, x)
+				setProp(SHREE_SSH_ADDR, []byte(x))
+
+			}
+		default:
+			err = errors.New("Couldn't found properties")
+		}
+	}
+	return
 }
 
 //exitGracefully gracefully exits app after stopping all the Sockets

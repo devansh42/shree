@@ -19,6 +19,21 @@ const keyuser = "user"
 //currentUser, is the current user
 var currentUser *remote.User
 
+//getCurrentUserInfo, displays current user info
+func getCurrentUserInfo() {
+	defer resetConsoleColor()
+	if currentUser != nil {
+		print(COLOR_YELLOW)
+		println("Username:\t", currentUser.Username)
+		println("Email:\t", currentUser.Email)
+		println("User Id:\t", currentUser.Uid)
+		return
+	}
+	print(COLOR_RED)
+	println("You are un-authenticated user, please authenticate yourself with \"sign me in\" ")
+
+}
+
 //authUser authenticates user it creates if doesn't exists
 func authUser(user *remote.User, cli *rpc.Client) (bool, error) {
 	var resp = new(remote.User)

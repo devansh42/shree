@@ -16,9 +16,8 @@ import (
 )
 
 const (
-	SSH_PORT           = "SSH_PORT" //For Environment variables
-	SSH_HOST           = "SSH_HOST" //For Environment variables
 	keysshclientsocket = "sshclient"
+	SHREE_SSH_ADDR     = "SHREE_SSH_ADDR"
 )
 
 var (
@@ -86,7 +85,7 @@ func forwardRemotePort(protocol string, dest int, bpass []byte) string {
 			HostKeyCallback: getHostCallBack(),
 			User:            currentUser.Username}
 
-		cli, err := ssh.Dial(protocol, exe.JoinHost(os.Getenv(SSH_HOST), os.Getenv(SSH_PORT)), config)
+		cli, err := ssh.Dial(protocol, os.Getenv(SHREE_SSH_ADDR), config)
 		if err != nil {
 			println("Couldn't establish connection to backend server due to\t", err.Error())
 			println("Please try again or report if problem persists")

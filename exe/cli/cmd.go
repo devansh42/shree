@@ -1,26 +1,35 @@
 package main
 
 import (
+	"strings"
 	"time"
 
 	cli "github.com/urfave/cli/v2"
 )
 
 func welComeMsg() {
-	println("Hello, I am Shree, your partner in tunneling!!\nI can make local and remote tunnels for you")
-	println("Type \"help\" for listing available options")
-	println("Happy Tunneling!!")
+	print(COLOR_GREEN)
 
+	println("\t", strings.Repeat("-=", 50))
+	println("\tHello, I am Shree, your partner in tunneling!!")
+	println("\tI can make local and remote tunnels for you")
+	println("\tType \"help\" for listing available options")
+	println("\tYou can change backend and ssh server address with 'set' command, type 'help set' for more info")
+	println("\tHappy Tunneling!!")
+	println("\t", strings.Repeat("=-", 50))
+	resetConsoleColor()
 }
 
 func getCliApp() cli.App {
 
 	app := cli.App{Name: "shree",
 		Version: "0.0.1",
-
+		CommandNotFound: func(c *cli.Context, cmd string) {
+			println("Command ", cmd, " not found")
+		},
 		Compiled: time.Now(),
 		Authors: []*cli.Author{
-			&cli.Author{Name: "devansh42"},
+			&cli.Author{Name: "devansh42", Email: "devanshguptamrt@gmail.com"},
 		},
 		Description: "Cli for Shree - A Tunneling Solution for developers",
 		Commands: []*cli.Command{
@@ -33,7 +42,47 @@ func getCliApp() cli.App {
 			},
 
 			&cli.Command{
-				Name:  "get",
+				Name:    "whoami",
+				Aliases: []string{"who"},
+				Usage:   "Reveals current user",
+				Action:  whoAmI,
+			},
+			&cli.Command{
+				Name:  "set",
+				Usage: "Sets cli properties like remote server address",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:    "backend",
+						Aliases: []string{"b"},
+						Usage:   "sets the backend server address to the given value",
+					},
+					&cli.StringFlag{
+						Name:    "remote",
+						Aliases: []string{"r"},
+						Usage:   "sets the remote server address to the given value",
+					},
+				},
+				Action: setProps,
+			},
+			&cli.Command{
+				Name:   "get",
+				Usage:  "Gets any specific property e.g get --backend",
+				Action: getProps,
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:    "backend",
+						Usage:   "gets backend address",
+						Aliases: []string{"b"},
+					},
+					&cli.BoolFlag{
+						Name:    "remote",
+						Usage:   "gets remote address",
+						Aliases: []string{"r"},
+					},
+				},
+			},
+			&cli.Command{
+				Name:  "sign",
 				Usage: "Command for login/logout",
 				Subcommands: []*cli.Command{
 					&cli.Command{

@@ -8,8 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/devansh42/shree/remote"
-
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
@@ -37,16 +35,19 @@ func main() {
 
 	initApp()
 	welComeMsg()
+	loadProps()
 	app := getCliApp()
 	for {
+		print(COLOR_YELLOW)
 		print(SHREE_CMD_TAG)
+		resetConsoleColor()
 		reader := bufio.NewReader(os.Stdin)
 		line, _, _ := reader.ReadLine()
 		s := strings.Split(string(line), " ")
 		var ss []string
 		ss = append(ss, "shree")
 		ss = append(ss, s...)
-		println(string(line))
+
 		app.Run(ss)
 	}
 }
@@ -65,7 +66,6 @@ var localdb *leveldb.DB
 func initApp() {
 	//Making app folder
 	appdir := getAppDir()
-
 	_, err := os.Stat(appdir)
 	if os.IsNotExist(err) { //Make one if doesn't exists
 		os.Mkdir(appdir, 0700)
@@ -78,7 +78,8 @@ func initApp() {
 	}
 	localdb = db
 	currentPeer = newpeer()
-	currentUser = new(remote.User)
+	//currentUser = new(remote.User)
+
 }
 
 func getAppFile(fs ...string) string {
@@ -102,6 +103,41 @@ func getBackendClient() *rpc.Client {
 		return nil
 	}
 	return cli
+}
+
+//setProp, sets props the cli and persists it the db
+func setProp(name string, value []byte) bool {
+	err := localdb.Put([]byte(sprint("prop:", name)), value, nil)
+	if err != nil {
+		return false
+	}
+	return true
+}
+
+//getProp, gets props from cli
+func getProp(name string) []byte {
+	k := []byte(sprint("prop:", name))
+	ok, err := localdb.Has(k, nil)
+	if !ok || err != nil {
+		return nil
+	}
+	v, _ := localdb.Get(k, nil)
+	return v
+}
+
+//loadProps loads props and sets environment variable
+func loadProps() {
+	for _, v := range cliProps {
+		vv := getProp(v)
+		if vv != nil {
+			os.Setenv(v, string(vv))
+		}
+	}
+}
+
+var cliProps = []string{
+	SHREE_SSH_ADDR,
+	SHREE_BACKEND_ADDR,
 }
 
 var (

@@ -17,8 +17,7 @@ import (
 )
 
 func initTestEnvironment(t *testing.T) {
-	os.Setenv(SSH_HOST, "localhost")
-	os.Setenv(SSH_PORT, "9500")
+	os.Setenv(SHREE_SSH_ADDR, "localhost:9500")
 	initApp()
 	startDemoRPCServer(t)    //Test server for fetching required certificates
 	go startDemoSSHServer(t) //Test ssh server
@@ -124,10 +123,11 @@ func callmaker(certcheker *ssh.CertChecker) callbackfn {
 	}
 }
 func startDemoSSHServer(t *testing.T) {
-	listener, err := net.Listen("tcp", exe.JoinHost(os.Getenv(SSH_HOST), os.Getenv(SSH_PORT)))
+	addr := os.Getenv(SHREE_SSH_ADDR)
+	listener, err := net.Listen("tcp", addr)
 	fatalTestErr(t, err)
 	defer listener.Close()
-	t.Log("SSH is listening... ", os.Getenv(SSH_PORT))
+	t.Log("SSH is listening... ", addr)
 	config := new(ssh.ServerConfig)
 	certChecker := new(ssh.CertChecker)
 	certChecker.IsUserAuthority = func(auth ssh.PublicKey) bool {
