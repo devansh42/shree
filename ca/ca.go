@@ -11,13 +11,8 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-const (
-	CAPRIVATEFILE = "SHREE_CAPRIVATE"
-	CAHOSTPRIKEY  = "SHREE_CAHOSTPRIVATE"
-)
-
 func main() {
-
+	parseFlag()
 	initCA()
 	StartServer() //Starting the server
 }
