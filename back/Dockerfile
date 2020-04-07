@@ -7,5 +7,5 @@ FROM alpine
 RUN mkdir -p /backend
 COPY --from=base ~/shree/back/back /backend/back 
 WORKDIR /backend
-CMD ["sh back"]
+CMD ["./back"]
 
