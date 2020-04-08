@@ -4,7 +4,7 @@ WORKDIR shree/exe/serv
 RUN go build .
 
 FROM alpine
-RUN mkdir -p /serv
+RUN mkdir -p /serv/keys
 COPY --from=base /go/shree/exe/serv/serv /serv/serv 
 WORKDIR /serv
 CMD ["./serv"]

@@ -4,7 +4,7 @@ WORKDIR shree/ca
 RUN go build .
 
 FROM alpine
-RUN mkdir -p /ca
+RUN mkdir -p /ca/keys 
 COPY --from=base /go/shree/ca/ca /ca/ca 
 WORKDIR /ca
 CMD ["./ca"]

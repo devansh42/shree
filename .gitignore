@@ -4,5 +4,5 @@
 ./back/back
 ./ca/ca
 ./exe/cli/cli
-./exe/server/server
+./exe/serv/serv
 
