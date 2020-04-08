@@ -12,5 +12,5 @@ docker build  -t devansh42/shree-serv ./exe/serv
 #docker push devansh42/shree-serv
 
 #Now let's compile shree-service image
-docker-compose build shree-stack 
+docker-compose build 
 
