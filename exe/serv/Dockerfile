@@ -1,4 +1,4 @@
-FROM golang:alpine as base
+FROM golang as base
 RUN git clone https://github.com/devansh42/shree.git
 WORKDIR shree/exe/serv
 RUN go build .

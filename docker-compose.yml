@@ -15,7 +15,7 @@ services:
             - backend   
         volumes: 
             - "/dvol/shree/backend:/root"    
-        command: "back -baddr :4200 -caddr ca:5200 -raddr redis:6379"    
+        command: "back -baddr :4200 -caddr ca:5200 -raddr shree_redis_1:6379"    
   
   
   
@@ -58,7 +58,7 @@ services:
 networks: 
     ca:
         driver: bridge
-        attachable: true
+     
     backend:
         driver: bridge
-        attachable: true    
+     

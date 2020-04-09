@@ -1,11 +1,11 @@
-FROM golang:alpine AS base
+FROM golang AS base
 RUN  git clone https://github.com/devansh42/shree.git
-WORKDIR ~/shree/back
+WORKDIR /go/shree/back
 RUN go build .
 
 FROM alpine
 RUN mkdir -p /back/keys
-COPY --from=base ~/shree/back/back /back/back 
+COPY --from=base /go/shree/back/back /back/back 
 WORKDIR /back
 CMD ["./back"]
 
