@@ -21,8 +21,10 @@ func initCA() {
 	onceLock = new(sync.Once)
 	onceLock.Do(func() {
 		getCAPrivateKey()
+		getCAHostPrivateKey()
 		getCAHostPubliKey()
 		getCAUserPubliKey()
+
 	}) //Loads certificates private key in memory
 }
 
@@ -105,6 +107,7 @@ func getCertificate(username string, tobesigned ssh.PublicKey, certType uint32) 
 	} else {
 		signer = privateKeySigner
 	}
+	log.Print("Signer Value", signer)
 	err := cert.SignCert(rand.Reader, signer)
 	if err != nil {
 		return nil, err

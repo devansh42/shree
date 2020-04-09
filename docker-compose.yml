@@ -25,6 +25,7 @@ services:
         hostname: redis
         expose: 
             - 6379
+        hostname: redis    
         networks: 
             - ca
         volumes: 
@@ -33,6 +34,7 @@ services:
     ca:
         hostname: ca
         image:  devansh42/shree-ca:latest
+        hostname: ca
         networks: 
             - ca
         expose:
@@ -45,7 +47,8 @@ services:
         
 
     serv:
-        image: devansh42/shree-serv:latest                
+        image: devansh42/shree-serv:latest 
+        hostname: serv               
         networks: 
             - backend
         depends_on: 
@@ -56,7 +59,7 @@ services:
         volumes: 
             - "/dvols/shree/serv:/root"
             - "/dvols/shree/keys/serv:/serv/keys"    
-        command: "./serv -addr :6200 -baddr backend:4200 -host localhost:6200 -prv /serv/keys/id_host -pub /serv/keys/id_host.pub"        
+        command: "./serv -addr :6200 -baddr backend:4200 -host localhost -prv /serv/keys/id_host -pub /serv/keys/id_host.pub"        
 
 
 networks: 
