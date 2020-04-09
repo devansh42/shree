@@ -15,7 +15,7 @@ services:
             - backend   
         volumes: 
             - "/dvol/shree/backend:/root"    
-        command: "back -baddr :4200 -caddr ca:5200 -raddr shree_redis_1:6379"    
+        command: "./back -baddr :4200 -caddr ca:5200 -raddr shree_redis_1:6379"    
   
   
   
@@ -37,7 +37,7 @@ services:
         volumes: 
             - "/dvols/shree/ca:/root"
             - "/dvols/shree/keys/ca:/ca/keys"    
-        command: "ca -addr :5200 -hprv /ca/keys/ca_host_key -hpub /ca/keys/ca_host_key.pub -uprv /ca/keys/ca_user_key -upub /ca/keys/ca_user_key.pub"   
+        command: "./ca -addr :5200 -hprv /ca/keys/ca_host_key -hpub /ca/keys/ca_host_key.pub -uprv /ca/keys/ca_user_key -upub /ca/keys/ca_user_key.pub"   
         
         
 
@@ -52,7 +52,7 @@ services:
         volumes: 
             - "/dvols/shree/serv:/root"
             - "/dvols/shree/keys/serv:/serv/keys"    
-        command: "serv -addr :6200 -baddr :4200 -host localhost -prv /serv/keys/id_host -pub /serv/keys/id_host.pub"        
+        command: "./serv -addr :6200 -baddr :4200 -host localhost -prv /serv/keys/id_host -pub /serv/keys/id_host.pub"        
 
 
 networks: 
