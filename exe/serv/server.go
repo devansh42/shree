@@ -173,7 +173,8 @@ func userAuthenticator(auth ssh.PublicKey) bool {
 			log.Fatal("Couldn't reach to backend server")
 		}
 		cli.Call("Backend.GetCAUserPublicCertificate", new(remote.CertificateRequest), certc)
-		caUserPublicKey = certc.Bytes
+		cer, _, _, _, _ := ssh.ParseAuthorizedKey(certc.Bytes)
+		caUserPublicKey = ssh.MarshalAuthorizedKey(cer)
 
 	}
 	o := bytes.Equal(ssh.MarshalAuthorizedKey(auth), caUserPublicKey)
