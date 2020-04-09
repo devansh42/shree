@@ -2,7 +2,7 @@
 #This files build docker images and push them to docker hub
 
 docker build  -t devansh42/shree-backend ./back
-docker build  -t devansh42/shree-ca ./ca
+docker build --no-cache	 -t devansh42/shree-ca ./ca
 docker build  -t devansh42/shree-serv ./exe/serv
  #Asking for login
 
