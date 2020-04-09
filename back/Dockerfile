@@ -4,8 +4,9 @@ WORKDIR /go/shree/back
 RUN go build .
 
 FROM alpine
+RUN apk update && apk add libc6-compat
 RUN mkdir -p /back/keys
 COPY --from=base /go/shree/back/back /back/back 
 WORKDIR /back
-CMD ["./back"]
+CMD ["/back/back"]
 

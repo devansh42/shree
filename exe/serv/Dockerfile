@@ -4,7 +4,8 @@ WORKDIR shree/exe/serv
 RUN go build .
 
 FROM alpine
+RUN apk update && apk add libc6-compat
 RUN mkdir -p /serv/keys
 COPY --from=base /go/shree/exe/serv/serv /serv/serv 
 WORKDIR /serv
-CMD ["./serv"]
+CMD ["/serv/serv"]
