@@ -163,7 +163,7 @@ func getCertificateFromBytes(b, mpubkey []byte) *ssh.Certificate {
 func fetchCertificate(pub []byte) (certificateBytes []byte) {
 
 	cli := getBackendClient()
-	prin := ""
+	prin := os.Getenv(SHREE_HOST_PRINCIPAL) //Setting host principal
 	resp := new(remote.CertificateResponse)
 	err := cli.Call("Backend.IssueHostCertificate", &remote.HostCertificateRequest{PublicKey: pub, Principal: prin}, resp)
 	if err != nil {

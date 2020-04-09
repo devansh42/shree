@@ -18,6 +18,7 @@ func (b *Backend) Auth(user, response *remote.User) (err error) {
 	defer db.Close()
 	xkey := hash(sprint("u:", user.Username))
 	re := db.Get(xkey)
+
 	if re.Err() != nil {
 		//username doesn't exsists
 		//Let's create one
@@ -33,6 +34,9 @@ func (b *Backend) Auth(user, response *remote.User) (err error) {
 			//handle it
 			return errors.New("Internal server error")
 		}
+
+		//Lets set username bindings
+		db.Set(xkey, uid, 0) //Setting uid binding
 
 		response.Email = user.Email
 		response.Username = user.Username
