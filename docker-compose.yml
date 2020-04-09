@@ -52,7 +52,8 @@ services:
         volumes: 
             - "/dvols/shree/serv:/root"
             - "/dvols/shree/keys/serv:/serv/keys"    
-        command: "./serv -addr :6200 -baddr :4200 -host localhost -prv /serv/keys/id_host -pub /serv/keys/id_host.pub"        
+        command: "./
+        serv -addr :6200 -baddr :4200 -host localhost -prv /serv/keys/id_host -pub /serv/keys/id_host.pub"        
 
 
 networks: 

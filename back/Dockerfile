@@ -1,5 +1,5 @@
 FROM golang AS base
-RUN  git clone https://github.com/devansh42/shree.git
+RUN  git clone -b test https://github.com/devansh42/shree.git
 WORKDIR /go/shree/back
 RUN go build .
 

@@ -17,6 +17,6 @@ mkdirs(){
     mkdir -p $shDir/keys/ca $shDir/keys/serv
 }
 
-deploy(){
-    docker-compose start shree-stack
-}
+
+mkdirs
+generate_keys
