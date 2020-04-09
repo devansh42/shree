@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"os"
 
@@ -94,7 +93,7 @@ func forwardRemotePort(protocol string, dest int, bpass []byte) string {
 
 		sshClientConnection = cli
 	}
-	log.Print("New Request")
+
 	//opening socket on remote machine to listen
 	//here we are using port no. 0, so let remote side can decide the port to be open
 	listener, err := sshClientConnection.Listen(protocol, exe.JoinHost("0.0.0.0", 0))
@@ -143,8 +142,8 @@ func disconnectRemoteForwardedPort(dest string) {
 
 //This function lists remote connected tunnels
 func listConnectedRemoteTunnel() {
-	remotehost := os.Getenv(SHREE_SSH_ADDR)
-	println("Remote connected ports")
+	remotehost, _, _ := net.SplitHostPort(os.Getenv(SHREE_SSH_ADDR))
+	println("Remote connected port(s) ", len(remoteForwardedPorts), " found")
 	print(COLOR_YELLOW)
 
 	for i, v := range remoteForwardedPorts {

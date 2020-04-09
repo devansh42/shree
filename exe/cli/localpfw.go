@@ -62,7 +62,7 @@ func disconnectLocalyForwardedPort(src int) {
 
 //This function lists local connected tunnels
 func listConnectedLocalTunnel() {
-	println("Local connected ports")
+	println("Local connected port(s) ", len(locallyForwardedPort), " found")
 	print(COLOR_YELLOW)
 	for i, v := range locallyForwardedPort {
 		println(i+1, "\t", exe.JoinHost("", v.SrcPort), "\t->\t", exe.JoinHost("", v.DestPort))

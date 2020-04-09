@@ -74,7 +74,11 @@ func initApp() {
 	//Opening App folder
 	db, err := leveldb.OpenFile(getAppFile("state"), nil) //Opening state database
 	if err != nil {
-
+		print(COLOR_RED)
+		println("Couldn't open local database, It might happen if another instance of shree is already running or something, please remote this problem")
+		println("Reason: ", err.Error())
+		resetConsoleColor()
+		os.Exit(0) //Exiting from current session
 	}
 	localdb = db
 	currentPeer = newpeer()

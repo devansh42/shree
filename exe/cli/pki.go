@@ -8,6 +8,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/devansh42/shree/remote"
 
@@ -95,7 +96,7 @@ func askForPassword() []byte {
 }
 
 //fetchServerCertificateAndPersist, fetches certificate from default certificate repo
-func fetchServerCertificateAndPersist() (*ssh.Certificate, error) {
+func fetchServerCertificateAndPersist() (ssh.PublicKey, error) {
 	println("Fetching CA Host Certifcate....")
 	cert := new(remote.CertificateResponse)
 	cli := getBackendClient()
@@ -110,22 +111,28 @@ func fetchServerCertificateAndPersist() (*ssh.Certificate, error) {
 	pk, _, _, _, _ := parseauthkey(cert.Bytes)
 	println("Cetificate Fetched\nFingerprint\n", ssh.FingerprintLegacyMD5(pk))
 	localdb.Put([]byte(keyservercertificate), cert.Bytes, nil)
-	return pk.(*ssh.Certificate), nil
+	return pk, nil
 }
 
 func getServerCertificate() (cert ssh.PublicKey) {
 	//Let's search in localdb
-	bc, err := localdb.Get([]byte(keyservercertificate), nil)
+	have, err := localdb.Has([]byte(keyservercertificate), nil)
 	if err != nil {
-		cert, err = fetchServerCertificateAndPersist()
+		log.Fatal("Could get server public key")
 
-	} else {
+	}
+
+	if have {
+		bc, _ := localdb.Get([]byte(keyservercertificate), nil)
 		cert, _, _, _, err = parseauthkey(bc)
 		if err != nil { //Couldn't parse
 			cert, err = fetchServerCertificateAndPersist()
 
 		}
+		return
 	}
+	cert, err = fetchServerCertificateAndPersist()
+
 	return
 }
 

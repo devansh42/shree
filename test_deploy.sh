@@ -2,6 +2,9 @@
 
 shDir=/dvols/shree
 
+#This scripts generates deployment stuff
+
+
 generate_keys(){
 
     ssh-keygen -t rsa -b 4096 -P "" -f $shDir/keys/ca/ca_host_key

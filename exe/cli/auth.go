@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/rpc"
 	"time"
 
@@ -47,7 +46,7 @@ func authUser(user *remote.User, cli *rpc.Client) (bool, error) {
 		}
 	}
 	currentUser = resp //Is the current logined user
-	log.Println(currentUser, resp)
+	user.Uid = resp.Uid
 	//Lets overwrite the user
 	b, _ := json.Marshal(resp)
 	localdb.Put([]byte(keyuser), b, nil)
@@ -95,7 +94,7 @@ func manageCertificate(user *remote.User, pass []byte) {
 		println("Certicate Generated\nCertificate Finger Print")
 		print(COLOR_YELLOW)
 		certpub, _, _, _, _ := parseauthkey(cert.Bytes)
-		fmt.Printf("%x", ssh.FingerprintLegacyMD5(certpub))
+		fmt.Printf("%s\n", ssh.FingerprintLegacyMD5(certpub))
 		resetConsoleColor()
 		//Writting certificate to db
 		localdb.Put([]byte(fmt.Sprint(keycertkey, user.Uid)), marshaled, nil)

@@ -54,11 +54,13 @@ func signIn(c *cli.Context) error {
 	}
 	println("Initializing Access Key Managment....")
 	kpass := askForPassword()
+
 	manageCertificate(&user, kpass)
 	return nil
 }
 
 func signOut(c *cli.Context) error {
+	println("This feature is under development, just use sign me in, to change user account")
 	return nil
 }
 
@@ -95,7 +97,7 @@ func disconnectLocalTunnel(c *cli.Context) error {
 
 //exposeRemoteTunnel, connects local port to local port
 func exposeRemoteTunnel(c *cli.Context) error {
-	expose := c.Uint("expose")
+	expose := c.Uint("dest")
 	println("Trying to Expose ", expose, " .......")
 	//Exposes port
 	//0 src ports specifies any port

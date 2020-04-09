@@ -106,12 +106,14 @@ func getCliApp() cli.App {
 						Name:     "src",
 						Usage:    "specifies port to be open for tunneling",
 						Required: true,
+						Aliases:  []string{"s"},
 					},
 
 					&cli.UintFlag{
 						Name:     "dest",
 						Usage:    "specifies port to which tunnel points to ",
 						Required: true,
+						Aliases:  []string{"d"},
 					}},
 
 				Action: connectLocalTunnel},
@@ -122,6 +124,7 @@ func getCliApp() cli.App {
 					&cli.UintFlag{
 						Name:     "dest",
 						Required: true,
+						Aliases:  []string{"d"},
 						Usage:    "specifies port on local machine to tunnel",
 					},
 				},
