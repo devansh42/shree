@@ -53,7 +53,7 @@ func main() {
 	os.Setenv(SHREE_BACKEND_ADDR, *baddr)
 	os.Setenv(SHREE_HOST_PRINCIPAL, *host)
 	log.Print(os.Getenv(SHREE_HOST_PRINCIPAL))
-	addrs := []string{*baddr, *host, *a}
+	addrs := []string{*baddr, *a}
 	for _, v := range addrs {
 		_, _, err := net.SplitHostPort(v)
 		if err != nil {
