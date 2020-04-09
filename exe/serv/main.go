@@ -76,6 +76,7 @@ func getBackendClient() *rpc.Client {
 func initApp() {
 	log.Println("Initializing App")
 	dirName := getAppDir()
+	log.Println("Home Directory\t", dirName)
 	_, err := os.Stat(dirName)
 	if os.IsNotExist(err) {
 		os.Mkdir(dirName, 0700)
