@@ -152,7 +152,7 @@ func getCliApp() cli.App {
 
 				Flags: []cli.Flag{
 					&cli.UintFlag{
-						Name:  "port",
+						Name:  "dest",
 						Usage: "port on local machine to turn off remote tunnel",
 					},
 				},
